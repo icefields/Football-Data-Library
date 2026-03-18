@@ -1,8 +1,8 @@
 -- awesome/team_widget.lua
 -- AwesomeWM widget for displaying team match results
 
-local FootballData = require("init")
-local View = require("view")
+local FootballData = require("football_widget.awesome.init")
+local View = require("football_widget.awesome.view")
 
 local team_widget = {}
 

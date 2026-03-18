@@ -1,8 +1,8 @@
 -- awesome/standings_widget.lua
 -- AwesomeWM widget for displaying league standings with competition selection
 
-local FootballData = require("init")
-local View = require("view")
+local FootballData = require("football_widget.init")
+local View = require("football_widget.view")
 
 local standings_widget = {}
 
