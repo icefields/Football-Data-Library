@@ -440,13 +440,19 @@ function match_window.create(args)
 
         -- Run async
         awful.spawn.easy_async(cmd, function(stdout, stderr, exitreason, exitcode)
-            -- Debug: show command and exit code
-            local debug_info = "Cmd: " .. (currentTab or "unknown") .. " exit=" .. tostring(exitcode)
-            
             if exitcode ~= 0 then
-                -- Only show error if we don't have cached data
-                if not cache.matches.data and not cache.standings.data and not cache.champions.data then
-                    contentText.text = "Error: " .. (stderr or "fetch failed") .. " (" .. debug_info .. ")"
+                -- Show cached data if available, with error message
+                local errorMsg = "⚠️ " .. (stderr or "fetch failed")
+                if currentTab == "scores" and cache.matches.data then
+                    local rawResults = View.getMatchesString(cache.matches.data, true)
+                    contentText.text = errorMsg .. "\n\n" .. View.getFormattedResults(rawResults)
+                elseif currentTab == "standings" and cache.standings.data then
+                    contentText.text = errorMsg .. "\n\n" .. View.getStandingsString(cache.standings.data, currentCompetition.name)
+                elseif currentTab == "champions" and cache.champions.data then
+                    local rawResults = View.getMatchesString(cache.champions.data, true)
+                    contentText.text = errorMsg .. "\n\n" .. View.getFormattedResults(rawResults)
+                else
+                    contentText.text = "Error: " .. errorMsg
                 end
                 return
             end
@@ -456,12 +462,12 @@ function match_window.create(args)
             end)
 
             if not success then
-                contentText.text = "JSON parse error (" .. debug_info .. ")"
+                contentText.text = "JSON parse error"
                 return
             end
             
             if not data then
-                contentText.text = "No data received (" .. debug_info .. ")"
+                contentText.text = "No data received"
                 return
             end
             
@@ -611,7 +617,7 @@ function match_window.create(args)
                 margins = paddings.competition,
                 visible = false,
             },
-            -- Content area (scrollable, no autoscroll
+            -- Content area (scrollable, manual scroll only)
             {
                 {
                     {
@@ -624,7 +630,9 @@ function match_window.create(args)
                 },
                 widget = wibox.container.scroll.vertical,
                 step = sizes.scroll_step,
-                scroll_speed = 0,  -- Disable auto-scroll
+                speed = 0,  -- No auto-scroll
+                expand = true,  -- Expand to fit content
+                scroll_speed = 0,  -- Disable auto-scroll (alternative option)
             },
         }
     }
