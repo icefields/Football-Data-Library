@@ -264,6 +264,10 @@ function match_window.create(args)
 
     -- Current tab: "scores", "standings", or "champions"
     local currentTab = "scores"
+    
+    -- Pagination state
+    local currentPage = 1
+    local matchesPerPage = cfg.defaults.matches_per_page or 10
 
     local button = wibox.widget {
         {
@@ -312,33 +316,6 @@ function match_window.create(args)
         fg = colors.fg_text,
         forced_width = sizes.content_width,
     }
-
-    -- Scrollable content container
-    local contentScroll = wibox.widget {
-        {
-            {
-                contentText,
-                widget = wibox.container.background,
-                bg = colors.bg_window,
-            },
-            widget = wibox.container.margin,
-            margins = paddings.content,
-        },
-        widget = wibox.container.scroll.vertical,
-        step = sizes.scroll_step,
-        speed = 0,
-        expand = true,
-        scroll_speed = 0,
-    }
-
-    -- Enable mouse wheel scrolling
-    contentScroll:connect_signal("button::press", function(_, _, _, button)
-        if button == 4 then
-            contentScroll:scroll_by(-sizes.scroll_step)
-        elseif button == 5 then
-            contentScroll:scroll_by(sizes.scroll_step)
-        end
-    end)
 
     -- Create tab buttons
     local scoresTab = wibox.widget {
@@ -408,6 +385,10 @@ function match_window.create(args)
 
     -- Forward declaration for updateContent (needed for setActiveTab)
     local updateContent = nil
+    
+    -- Forward declarations for pagination buttons
+    local prevPageBtn = nil
+    local nextPageBtn = nil
 
     -- Cache file path
     local cacheFile = cfg.paths.cache_file
@@ -427,8 +408,21 @@ function match_window.create(args)
         elseif currentTab == "standings" and cache.standings.data then
             contentText.text = View.getStandingsString(cache.standings.data, currentCompetition.name)
         elseif currentTab == "champions" and cache.champions.data then
-            local rawResults = View.getMatchesString(cache.champions.data, true)
-            contentText.text = View.getFormattedResults(rawResults)
+            -- Paginate champions results
+            local allMatches = cache.champions.data
+            local startIdx = (currentPage - 1) * matchesPerPage + 1
+            local endIdx = math.min(startIdx + matchesPerPage - 1, #allMatches)
+            local pageMatches = {}
+            for i = startIdx, endIdx do
+                table.insert(pageMatches, allMatches[i])
+            end
+            local rawResults = View.getMatchesString(pageMatches, true)
+            local formattedResults = View.getFormattedResults(rawResults)
+            
+            -- Add page indicator
+            local totalPages = math.ceil(#allMatches / matchesPerPage)
+            local pageIndicator = string.format("\n\n─── Page %d/%d ───", currentPage, totalPages)
+            contentText.text = formattedResults .. pageIndicator
         else
             contentText.text = cfg.strings.loading
         end
@@ -534,11 +528,27 @@ function match_window.create(args)
             elseif currentTab == "standings" and cache.standings.data then
                 contentText.text = View.getStandingsString(cache.standings.data, currentCompetition.name)
             elseif currentTab == "champions" and cache.champions.data then
-                local rawResults = View.getMatchesString(cache.champions.data, true)
-                contentText.text = View.getFormattedResults(rawResults)
+                -- Paginate champions results
+                local allMatches = cache.champions.data
+                local startIdx = (currentPage - 1) * matchesPerPage + 1
+                local endIdx = math.min(startIdx + matchesPerPage - 1, #allMatches)
+                local pageMatches = {}
+                for i = startIdx, endIdx do
+                    table.insert(pageMatches, allMatches[i])
+                end
+                local rawResults = View.getMatchesString(pageMatches, true)
+                local formattedResults = View.getFormattedResults(rawResults)
+                
+                -- Add page indicator
+                local totalPages = math.ceil(#allMatches / matchesPerPage)
+                local pageIndicator = string.format("\n\n─── Page %d/%d ───", currentPage, totalPages)
+                contentText.text = formattedResults .. pageIndicator
+                
+                -- Update pagination buttons visibility
+                if prevPageBtn then prevPageBtn.visible = currentPage > 1 end
+                if nextPageBtn then nextPageBtn.visible = currentPage < totalPages end
             end
         end)
-    end
 
     -- Tab switching logic
     local function setActiveTab(tab)
@@ -554,20 +564,29 @@ function match_window.create(args)
             if popup then
                 local container = popup.widget:get_children_by_id("competitionContainer")[1]
                 if container then container.visible = false end
+                local pagination = popup.widget:get_children_by_id("paginationContainer")[1]
+                if pagination then pagination.visible = false end
             end
         elseif tab == "standings" then
             standingsTab.bg = colors.tab_active
             if popup then
                 local container = popup.widget:get_children_by_id("competitionContainer")[1]
                 if container then container.visible = true end
+                local pagination = popup.widget:get_children_by_id("paginationContainer")[1]
+                if pagination then pagination.visible = false end
             end
         else  -- champions
             championsTab.bg = colors.tab_active
             if popup then
                 local container = popup.widget:get_children_by_id("competitionContainer")[1]
                 if container then container.visible = false end
+                local pagination = popup.widget:get_children_by_id("paginationContainer")[1]
+                if pagination then pagination.visible = true end
             end
         end
+        
+        -- Reset page when switching tabs
+        currentPage = 1
         updateContent()
     end
 
@@ -644,10 +663,78 @@ function match_window.create(args)
                 margins = paddings.competition,
                 visible = false,
             },
-            -- Content area (scrollable, manual scroll only)
-            contentScroll,
+            -- Content area
+            {
+                {
+                    contentText,
+                    widget = wibox.container.background,
+                    bg = colors.bg_window,
+                },
+                widget = wibox.container.margin,
+                margins = paddings.content,
+            },
+            -- Pagination buttons (for Champions League)
+            {
+                id = "paginationContainer",
+                {
+                    {
+                        id = "prevPageBtn",
+                        text = "◀ Prev",
+                        widget = wibox.widget.textbox,
+                        align = "center",
+                        valign = "center",
+                        font = contentFont,
+                        visible = false,
+                    },
+                    nil,
+                    {
+                        id = "nextPageBtn",
+                        text = "Next ▶",
+                        widget = wibox.widget.textbox,
+                        align = "center",
+                        valign = "center",
+                        font = contentFont,
+                        visible = false,
+                    },
+                    layout = wibox.layout.align.horizontal,
+                },
+                widget = wibox.container.margin,
+                margins = { left = 8, right = 8, top = 4, bottom = 4 },
+                visible = false,
+            },
         }
     }
+
+    -- Get pagination buttons
+    prevPageBtn = popup.widget:get_children_by_id("prevPageBtn")[1]
+    nextPageBtn = popup.widget:get_children_by_id("nextPageBtn")[1]
+    local paginationContainer = popup.widget:get_children_by_id("paginationContainer")[1]
+
+    -- Pagination button handlers
+    if prevPageBtn then
+        prevPageBtn:buttons(gears.table.join(
+            awful.button({}, 1, function()
+                if currentPage > 1 then
+                    currentPage = currentPage - 1
+                    updateContent()
+                end
+            end)
+        ))
+    end
+    
+    if nextPageBtn then
+        nextPageBtn:buttons(gears.table.join(
+            awful.button({}, 1, function()
+                if cache.champions.data then
+                    local totalPages = math.ceil(#cache.champions.data / matchesPerPage)
+                    if currentPage < totalPages then
+                        currentPage = currentPage + 1
+                        updateContent()
+                    end
+                end
+            end)
+        ))
+    end
 
     -- Populate competition buttons
     for _, comp in ipairs(competitions) do

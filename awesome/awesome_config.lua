@@ -64,9 +64,6 @@ config.sizes = {
     -- Content width
     content_width = 700,
     
-    -- Scroll settings
-    scroll_step = 30,  -- Pixels per scroll step
-
     -- Button (wibar icon)
     button_size = 24,  -- Fallback if beautiful.topBar_buttonSize not set
 
@@ -182,7 +179,8 @@ config.defaults = {
     refresh_interval = 300,  -- 5 minutes
     cache_timeout = 300,     -- Cache data for 5 minutes
     champions_league_code = "CL",  -- Champions League competition code
-    champions_match_count = 15,     -- Number of recent CL matches to show (finished only)
+    champions_match_count = 50,    -- Total CL matches to fetch (finished only)
+    matches_per_page = 10,         -- Matches per page for pagination
 }
 
 return config
