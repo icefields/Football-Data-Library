@@ -224,17 +224,11 @@ function match_window.create(args)
         bg_content = "#1a1a2e",
         bg_button = "#00000000",
         
-        -- Button padding (for wibar icon)
+        -- Button margin (spacing from wibar edges)
         button_margin_top = 2,
         button_margin_bottom = 2,
         button_margin_left = 2,
         button_margin_right = 2,
-        
-        -- Icon padding (inside button)
-        icon_padding_top = 2,
-        icon_padding_bottom = 2,
-        icon_padding_left = 4,
-        icon_padding_right = 4,
     }
     
     -- Merge config with defaults
@@ -263,19 +257,12 @@ function match_window.create(args)
     -- Create the button widget (icon in wibar)
     local button = wibox.widget {
         {
-            {
-                id = "icon",
-                text = args.icon or "󰒸",  -- Nerd Font soccer/football icon
-                widget = wibox.widget.textbox,
-                align = "center",
-                valign = "center",
-                font = iconFont
-            },
-            widget = wibox.container.margin,
-            top = colors.icon_padding_top,
-            bottom = colors.icon_padding_bottom,
-            left = colors.icon_padding_left,
-            right = colors.icon_padding_right,
+            id = "icon",
+            text = args.icon or "󰒸",  -- Nerd Font soccer/football icon
+            widget = wibox.widget.textbox,
+            align = "center",
+            valign = "center",
+            font = iconFont
         },
         widget = wibox.container.background,
         bg = colors.bg_button,
@@ -284,7 +271,7 @@ function match_window.create(args)
         forced_height = beautiful.wibar_height or 24
     }
     
-    -- Wrap button in margin container for spacing
+    -- Wrap button in margin container for spacing from bar edges
     local buttonContainer = wibox.widget {
         button,
         widget = wibox.container.margin,
