@@ -673,130 +673,127 @@ function match_window.create(args)
         maximum_height = sizes.window_max_height,
         widget = wibox.widget {
             {
+                id = "popupLayout",
+                layout = wibox.layout.fixed.vertical,
+                -- Header with close button
                 {
-                    id = "popupLayout",
-                    layout = wibox.layout.fixed.vertical,
-                    -- Header with close button
                     {
                         {
                             {
-                                {
-                                    text = cfg.icons.football .. "  " .. cfg.strings.title,
-                                    widget = wibox.widget.textbox,
-                                    font = titleFont
-                                },
-                                nil,
-                                {
-                                    id = "closeBtn",
-                                    text = cfg.icons.close,
-                                    widget = wibox.widget.textbox,
-                                    font = contentFont,
-                                    align = "center",
-                                    valign = "center",
-                                    forced_width = sizes.close_button_size,
-                                    forced_height = sizes.close_button_size,
-                                    buttons = gears.table.join(
-                                        awful.button({}, 1, function()
-                                            popup.visible = false
-                                        end)
-                                    )
-                                },
-                                layout = wibox.layout.align.horizontal,
+                                text = cfg.icons.football .. "  " .. cfg.strings.title,
+                                widget = wibox.widget.textbox,
+                                font = titleFont
                             },
-                            widget = wibox.container.margin,
-                            margins = paddings.header,
-                        },
-                        bg = colors.bg_header,
-                        fg = colors.fg_text,
-                        widget = wibox.container.background,
-                    },
-                    -- Tab bar
-                    {
-                        {
+                            nil,
                             {
-                                scoresTab,
-                                standingsTab,
-                                championsTab,
-                                layout = wibox.layout.fixed.horizontal,
-                                spacing = 4,
+                                id = "closeBtn",
+                                text = cfg.icons.close,
+                                widget = wibox.widget.textbox,
+                                font = contentFont,
+                                align = "center",
+                                valign = "center",
+                                forced_width = sizes.close_button_size,
+                                forced_height = sizes.close_button_size,
+                                buttons = gears.table.join(
+                                    awful.button({}, 1, function()
+                                        popup.visible = false
+                                    end)
+                                )
                             },
-                            widget = wibox.container.margin,
-                            margins = paddings.tab_bar,
+                            layout = wibox.layout.align.horizontal,
                         },
-                        widget = wibox.container.background,
-                        bg = colors.bg_tab_bar,
+                        widget = wibox.container.margin,
+                        margins = paddings.header,
                     },
-                    -- Competition selector (for standings tab)
+                    bg = colors.bg_header,
+                    fg = colors.fg_text,
+                    widget = wibox.container.background,
+                },
+                -- Tab bar
+                {
                     {
-                        id = "competitionContainer",
                         {
-                            competitionButtons,
+                            scoresTab,
+                            standingsTab,
+                            championsTab,
+                            layout = wibox.layout.fixed.horizontal,
+                            spacing = 4,
+                        },
+                        widget = wibox.container.margin,
+                        margins = paddings.tab_bar,
+                    },
+                    widget = wibox.container.background,
+                    bg = colors.bg_tab_bar,
+                },
+                -- Competition selector (for standings tab)
+                {
+                    id = "competitionContainer",
+                    {
+                        competitionButtons,
+                        widget = wibox.container.background,
+                        bg = colors.bg_window,
+                    },
+                    widget = wibox.container.margin,
+                    margins = paddings.competition,
+                    visible = false,
+                },
+                -- Content area (expandable, will fill remaining space)
+                {
+                    {
+                        {
+                            contentText,
                             widget = wibox.container.background,
                             bg = colors.bg_window,
                         },
                         widget = wibox.container.margin,
-                        margins = paddings.competition,
-                        visible = false,
+                        margins = paddings.content,
                     },
-                    -- Content area (expandable, will fill remaining space)
-                    {
-                        {
-                            {
-                                contentText,
-                                widget = wibox.container.background,
-                                bg = colors.bg_window,
-                            },
-                            widget = wibox.container.margin,
-                            margins = paddings.content,
-                        },
-                        widget = wibox.container.constraint,
-                        strategy = "max",
-                        width = sizes.content_width,
-                        height = sizes.content_max_height,
-                    },
-                    -- Pagination buttons (anchored to bottom)
-                    {
-                        id = "paginationContainer",
-                        layout = wibox.layout.flex.horizontal,
-                        spacing = 20,
-                        {
-                            id = "prevPageBtn",
-                            text = "◀ Prev",
-                            widget = wibox.widget.textbox,
-                            align = "center",
-                            valign = "center",
-                            font = contentFont,
-                            fg = colors.fg_text,
-                        },
-                        {
-                            id = "pageIndicator",
-                            text = "Page 1/1",
-                            widget = wibox.widget.textbox,
-                            align = "center",
-                            valign = "center",
-                            font = contentFont,
-                            fg = colors.fg_text_dim,
-                        },
-                        {
-                            id = "nextPageBtn",
-                            text = "Next ▶",
-                            widget = wibox.widget.textbox,
-                            align = "center",
-                            valign = "center",
-                            font = contentFont,
-                            fg = colors.fg_text,
-                        },
-                        visible = false,
-                    },
+                    widget = wibox.container.constraint,
+                    strategy = "max",
+                    width = sizes.content_width,
+                    height = sizes.content_max_height,
                 },
-                widget = wibox.container.background,
-                bg = colors.bg_popup,
+                -- Pagination buttons (anchored to bottom)
+                {
+                    id = "paginationContainer",
+                    layout = wibox.layout.flex.horizontal,
+                    spacing = 20,
+                    {
+                        id = "prevPageBtn",
+                        text = "◀ Prev",
+                        widget = wibox.widget.textbox,
+                        align = "center",
+                        valign = "center",
+                        font = contentFont,
+                        fg = colors.fg_text,
+                    },
+                    {
+                        id = "pageIndicator",
+                        text = "Page 1/1",
+                        widget = wibox.widget.textbox,
+                        align = "center",
+                        valign = "center",
+                        font = contentFont,
+                        fg = colors.fg_text_dim,
+                    },
+                    {
+                        id = "nextPageBtn",
+                        text = "Next ▶",
+                        widget = wibox.widget.textbox,
+                        align = "center",
+                        valign = "center",
+                        font = contentFont,
+                        fg = colors.fg_text,
+                    },
+                    visible = false,
+                },
             },
-            layout = wibox.layout.fixed.vertical,
+            widget = wibox.container.background,
+            bg = colors.bg_popup,
         }
     }
 
-    -- Get pagination buttons (need to traverse into background container)
+    -- Get pagination buttons
     local popupLayout = popup.widget:get_children_by_id("popupLayout")[1]
     if popupLayout then
         prevPageBtn = popupLayout:get_children_by_id("prevPageBtn")[1]
