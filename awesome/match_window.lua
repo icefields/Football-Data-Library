@@ -168,7 +168,7 @@ function match_window.create(args)
 
     -- Use config defaults (can override via args.config)
     local cfg = args.config or default_config
-    
+
     -- Color scheme (from config, can override via args.colors)
     local colors = args.colors or cfg.colors
 
@@ -190,19 +190,20 @@ function match_window.create(args)
 
     -- Fonts (from config or beautiful theme)
     local contentFont = args.font or cfg.fonts.content or beautiful.font
+    local titleFont = beautiful.mainFont or contentFont
     local iconFontRaw = args.icon_font or cfg.fonts.icon or beautiful.topBar_button_font or beautiful.font
     local iconFontSize = tonumber(iconFontRaw:match("(%d+)$")) or 12
     local iconFontScaled = iconFontRaw:gsub("(%d+)$", tostring(math.floor(iconFontSize * cfg.fonts.icon_scale)))
-    
+
     -- Icons (from config)
     local footballIcon = args.icon or cfg.icons.football
-    
+
     -- Sizes (from config)
     local sizes = cfg.sizes
     local paddings = cfg.paddings
-    
+
     local currentCompetition = args.competitions and args.competitions[1] or cfg.COMPETITIONS[1]
-    
+
     -- Button size from beautiful theme or config
     local buttonSize = beautiful.topBar_buttonSize or beautiful.wibar_height or sizes.button_size
 
@@ -250,7 +251,7 @@ function match_window.create(args)
     -- Create content text widget (shared by both tabs)
     local contentText = wibox.widget {
         id = "content",
-        text = "Click a tab to load data...",
+        text = cfg.strings.click_to_load,
         widget = wibox.widget.textbox,
         font = contentFont,
         fg = colors.fg_text,
@@ -261,7 +262,7 @@ function match_window.create(args)
     local scoresTab = wibox.widget {
         {
             id = "label",
-            text = cfg.icons.results .. "  Results",
+            text = cfg.icons.results .. "  " .. cfg.strings.results,
             widget = wibox.widget.textbox,
             align = "center",
             valign = "center",
@@ -279,7 +280,7 @@ function match_window.create(args)
     local standingsTab = wibox.widget {
         {
             id = "label",
-            text = cfg.icons.standings .. "  Standings",
+            text = cfg.icons.standings .. "  " .. cfg.strings.standings,
             widget = wibox.widget.textbox,
             align = "center",
             valign = "center",
@@ -326,7 +327,7 @@ function match_window.create(args)
         elseif currentTab == "standings" and cache.standings.data then
             contentText.text = View.getStandingsString(cache.standings.data, currentCompetition.name)
         else
-            contentText.text = "Loading..."
+            contentText.text = cfg.strings.loading
         end
 
         -- Check if cache is still valid (no need to fetch)
@@ -423,9 +424,9 @@ function match_window.create(args)
                 {
                     {
                         {
-                            text = cfg.icons.football .. "  Football",
+                            text = cfg.icons.football .. "  " .. cfg.strings.title,
                             widget = wibox.widget.textbox,
-                            font = iconFontScaled
+                            font = titleFont
                         },
                         nil,
                         {
