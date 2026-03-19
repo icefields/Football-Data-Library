@@ -173,11 +173,11 @@ function match_window.create(args)
     -- Create content text widget (shared by both tabs)
     local contentText = wibox.widget {
         id = "content",
-        text = "Loading...",
+        text = "Click a tab to load data...",
         widget = wibox.widget.textbox,
         font = args.font or beautiful.font,
-        forced_width = 400,
-        forced_height = 400,
+        fg = beautiful.fg_normal or "#ffffff",
+        forced_width = 450,
     }
     
     -- Create tab buttons
@@ -217,8 +217,54 @@ function match_window.create(args)
     
     local competitions = args.competitions or match_window.COMPETITIONS
     
+    -- Forward declaration for popup (needed for close button)
+    local popup = nil
+    
+    -- Tab switching logic
+    local function setActiveTab(tab)
+        currentTab = tab
+        if tab == "scores" then
+            scoresTab.bg = beautiful.bg_focus or "#3a3a5a"
+            standingsTab.bg = beautiful.bg_normal or "#1a1a2e"
+            if popup then
+                popup.widget:get_children_by_id("competitionContainer")[1].visible = false
+            end
+        else
+            scoresTab.bg = beautiful.bg_normal or "#1a1a2e"
+            standingsTab.bg = beautiful.bg_focus or "#3a3a5a"
+            if popup then
+                popup.widget:get_children_by_id("competitionContainer")[1].visible = true
+            end
+        end
+    end
+    
+    -- Update content based on current tab
+    local function updateContent()
+        contentText.text = "Loading..."
+        
+        if currentTab == "scores" then
+            local matches, err = getTeamMatches(config)
+            if matches and #matches > 0 then
+                contentText.text = View.getMatchesString(matches, true)
+            elseif err then
+                contentText.text = "Error: " .. tostring(err)
+            else
+                contentText.text = "No matches found"
+            end
+        else
+            local standings, err = getStandings(currentCompetition.code)
+            if standings and #standings > 0 then
+                contentText.text = View.getStandingsString(standings, currentCompetition.name)
+            elseif err then
+                contentText.text = "Error: " .. tostring(err)
+            else
+                contentText.text = "No standings found"
+            end
+        end
+    end
+    
     -- Create the popup window
-    local popup = awful.popup {
+    popup = awful.popup {
         visible = false,
         ontop = true,
         placement = awful.placement.centered,
@@ -226,7 +272,7 @@ function match_window.create(args)
         maximum_width = 500,
         minimum_height = 500,
         widget = wibox.widget {
-            layout = wibox.layout.align.vertical,
+            layout = wibox.layout.fixed.vertical,
             -- Header with close button
             {
                 {
@@ -284,28 +330,15 @@ function match_window.create(args)
             {
                 {
                     contentText,
-                    widget = wibox.container.margin,
-                    margins = 8,
+                    widget = wibox.container.background,
+                    bg = beautiful.bg_normal or "#1a1a2e",
+                    forced_height = 400,
                 },
-                widget = wibox.container.background,
-                bg = beautiful.bg_normal or "#1a1a2e",
+                widget = wibox.container.margin,
+                margins = 8,
             },
         }
     }
-    
-    -- Tab switching logic
-    local function setActiveTab(tab)
-        currentTab = tab
-        if tab == "scores" then
-            scoresTab.bg = beautiful.bg_focus or "#3a3a5a"
-            standingsTab.bg = beautiful.bg_normal or "#1a1a2e"
-            popup.widget:get_children_by_id("competitionContainer")[1].visible = false
-        else
-            scoresTab.bg = beautiful.bg_normal or "#1a1a2e"
-            standingsTab.bg = beautiful.bg_focus or "#3a3a5a"
-            popup.widget:get_children_by_id("competitionContainer")[1].visible = true
-        end
-    end
     
     -- Populate competition buttons
     for _, comp in ipairs(competitions) do
@@ -344,31 +377,6 @@ function match_window.create(args)
             end
         end)
         competitionButtons:add(compBtn)
-    end
-    
-    -- Update content based on current tab
-    function updateContent()
-        contentText.text = "Loading..."
-        
-        if currentTab == "scores" then
-            local matches, err = getTeamMatches(config)
-            if matches and #matches > 0 then
-                contentText.text = View.getMatchesString(matches, true)
-            elseif err then
-                contentText.text = "Error: " .. tostring(err)
-            else
-                contentText.text = "No matches found"
-            end
-        else
-            local standings, err = getStandings(currentCompetition.code)
-            if standings and #standings > 0 then
-                contentText.text = View.getStandingsString(standings, currentCompetition.name)
-            elseif err then
-                contentText.text = "Error: " .. tostring(err)
-            else
-                contentText.text = "No standings found"
-            end
-        end
     end
     
     -- Tab click handlers
