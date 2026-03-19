@@ -223,30 +223,11 @@ function match_window.create(args)
     -- Forward declaration for popup (needed for close button)
     local popup = nil
     
-    -- Tab switching logic
-    local function setActiveTab(tab)
-        currentTab = tab
-        if tab == "scores" then
-            scoresTab.bg = beautiful.bg_focus or "#3a3a5a"
-            standingsTab.bg = beautiful.bg_normal or "#1a1a2e"
-            if popup then
-                local container = popup.widget:get_children_by_id("competitionContainer")[1]
-                if container then container.visible = false end
-            end
-            updateContent()
-        else
-            scoresTab.bg = beautiful.bg_normal or "#1a1a2e"
-            standingsTab.bg = beautiful.bg_focus or "#3a3a5a"
-            if popup then
-                local container = popup.widget:get_children_by_id("competitionContainer")[1]
-                if container then container.visible = true end
-            end
-            updateContent()
-        end
-    end
+    -- Forward declaration for updateContent (needed for setActiveTab)
+    local updateContent = nil
     
     -- Update content based on current tab
-    local function updateContent()
+    updateContent = function()
         contentText.text = "Loading..."
         
         if currentTab == "scores" then
@@ -267,6 +248,28 @@ function match_window.create(args)
             else
                 contentText.text = "No standings found"
             end
+        end
+    end
+    
+    -- Tab switching logic
+    local function setActiveTab(tab)
+        currentTab = tab
+        if tab == "scores" then
+            scoresTab.bg = beautiful.bg_focus or "#3a3a5a"
+            standingsTab.bg = beautiful.bg_normal or "#1a1a2e"
+            if popup then
+                local container = popup.widget:get_children_by_id("competitionContainer")[1]
+                if container then container.visible = false end
+            end
+            updateContent()
+        else
+            scoresTab.bg = beautiful.bg_normal or "#1a1a2e"
+            standingsTab.bg = beautiful.bg_focus or "#3a3a5a"
+            if popup then
+                local container = popup.widget:get_children_by_id("competitionContainer")[1]
+                if container then container.visible = true end
+            end
+            updateContent()
         end
     end
     
