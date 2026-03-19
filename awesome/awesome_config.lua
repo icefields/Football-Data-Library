@@ -111,6 +111,7 @@ config.icons = {
     close = "✕",
     results = "\u{f080}",   -- Chart/bar chart icon
     standings = "\u{f091}", -- Trophy icon
+    champions = "\u{f19c}", -- University/trophy icon for Champions League
 }
 
 --------------------------------------------------------------------------------
@@ -119,11 +120,12 @@ config.icons = {
 config.strings = {
     -- Window title
     title = "Football",
-
+    
     -- Tab labels (will be combined with icons)
     results = "Results",
     standings = "Standings",
-
+    champions = "Champions League",
+    
     -- Content placeholders
     loading = "Loading...",
     click_to_load = "Click a tab to load data...",
@@ -174,6 +176,8 @@ config.defaults = {
     auto_refresh = true,
     refresh_interval = 300,  -- 5 minutes
     cache_timeout = 300,     -- Cache data for 5 minutes
+    champions_league_code = "CL",  -- Champions League competition code
+    champions_match_count = 20,     -- More matches for CL (all teams)
 }
 
 return config

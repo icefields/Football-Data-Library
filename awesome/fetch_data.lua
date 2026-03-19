@@ -1,7 +1,9 @@
 #!/usr/bin/env lua
 -- fetch_data.lua - Standalone script to fetch football data
 -- Called by match_window widget via awful.spawn (async)
--- Usage: lua fetch_data.lua <cache_file> <team_id> <match_count> <competition_code>
+-- Usage: 
+--   lua fetch_data.lua <cache_file> <team_id> <match_count> <competition_code>
+--   lua fetch_data.lua <cache_file> champions <competition_code> <match_count>
 
 -- Get script directory and add to package.path
 local scriptPath = debug.getinfo(1, "S").source:match("^@(.+/)[^/]+$")
@@ -15,9 +17,7 @@ local cjson = require("cjson")
 
 -- Get args
 local cacheFile = arg[1]
-local teamId = tonumber(arg[2]) or 108
-local matchCount = tonumber(arg[3]) or 10
-local competitionCode = arg[4] or "SA"
+local mode = arg[2]
 
 -- Find .env file (relative to library, not this script)
 local envPath = scriptPath and (scriptPath .. "../.env") or ".env"
@@ -32,22 +32,42 @@ if not ok then
     os.exit(1)
 end
 
--- Fetch both matches and standings
-local matches = app.service:getTeamScores(teamId, matchCount, false)
-local standings = app.service:getStandings(competitionCode)
+local result
 
--- Build result
-local result = {
-    matches = {
-        data = matches,
-        timestamp = os.time(),
-    },
-    standings = {
-        data = standings,
-        timestamp = os.time(),
-        competition = competitionCode,
-    },
-}
+if mode == "champions" then
+    -- Fetch Champions League matches
+    local competitionCode = arg[3] or "CL"
+    local matchCount = tonumber(arg[4]) or 20
+    
+    local matches = app.service:getLatestScores(competitionCode, false)
+    
+    result = {
+        champions = {
+            data = matches,
+            timestamp = os.time(),
+        },
+    }
+else
+    -- Fetch team matches and standings
+    local teamId = tonumber(arg[2]) or 108
+    local matchCount = tonumber(arg[3]) or 10
+    local competitionCode = arg[4] or "SA"
+    
+    local matches = app.service:getTeamScores(teamId, matchCount, false)
+    local standings = app.service:getStandings(competitionCode)
+    
+    result = {
+        matches = {
+            data = matches,
+            timestamp = os.time(),
+        },
+        standings = {
+            data = standings,
+            timestamp = os.time(),
+            competition = competitionCode,
+        },
+    }
+end
 
 -- Save to cache file
 local file = io.open(cacheFile, "w")

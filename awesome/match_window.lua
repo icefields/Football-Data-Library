@@ -33,13 +33,18 @@ local footballApp = nil
 local cache = {
     matches = { data = nil, timestamp = 0 },
     standings = { data = nil, timestamp = 0, competition = nil },
+    champions = { data = nil, timestamp = 0 },  -- Champions League matches
 }
 
 -- Load cache from file
 local function loadCacheFromFile(cacheFile)
     local file = io.open(cacheFile, "r")
     if not file then
-        return { matches = { data = nil, timestamp = 0 }, standings = { data = nil, timestamp = 0, competition = nil } }
+        return { 
+            matches = { data = nil, timestamp = 0 }, 
+            standings = { data = nil, timestamp = 0, competition = nil },
+            champions = { data = nil, timestamp = 0 },
+        }
     end
 
     local content = file:read("*all")
@@ -53,10 +58,15 @@ local function loadCacheFromFile(cacheFile)
         return {
             matches = data.matches or { data = nil, timestamp = 0 },
             standings = data.standings or { data = nil, timestamp = 0, competition = nil },
+            champions = data.champions or { data = nil, timestamp = 0 },
         }
     end
 
-    return { matches = { data = nil, timestamp = 0 }, standings = { data = nil, timestamp = 0, competition = nil } }
+    return { 
+        matches = { data = nil, timestamp = 0 }, 
+        standings = { data = nil, timestamp = 0, competition = nil },
+        champions = { data = nil, timestamp = 0 },
+    }
 end
 
 -- Save cache to file
@@ -76,6 +86,7 @@ local function saveCacheToFile(cacheFile, cacheData)
         return require("cjson").encode({
             matches = cacheData.matches,
             standings = cacheData.standings,
+            champions = cacheData.champions,
         })
     end)
 
@@ -295,6 +306,24 @@ function match_window.create(args)
         shape_border_width = 0,
     }
 
+    local championsTab = wibox.widget {
+        {
+            id = "label",
+            text = cfg.icons.champions .. "  " .. cfg.strings.champions,
+            widget = wibox.widget.textbox,
+            align = "center",
+            valign = "center",
+            font = contentFont
+        },
+        bg = colors.tab_inactive,
+        fg = colors.fg_text,
+        widget = wibox.container.background,
+        forced_width = sizes.tab_width,
+        forced_height = sizes.tab_height,
+        shape = gears.shape.rounded_rect,
+        shape_border_width = 0,
+    }
+
     -- Competition selector dropdown
     local competitionButtons = wibox.widget {
         layout = wibox.layout.flex.horizontal,
@@ -326,6 +355,9 @@ function match_window.create(args)
             contentText.text = View.getFormattedResults(rawResults)
         elseif currentTab == "standings" and cache.standings.data then
             contentText.text = View.getStandingsString(cache.standings.data, currentCompetition.name)
+        elseif currentTab == "champions" and cache.champions.data then
+            local rawResults = View.getMatchesString(cache.champions.data, true)
+            contentText.text = View.getFormattedResults(rawResults)
         else
             contentText.text = cfg.strings.loading
         end
@@ -337,23 +369,38 @@ function match_window.create(args)
         if currentTab == "standings" and isCacheValid(cache.standings) and cache.standings.competition == currentCompetition.code then
             return  -- Cache is fresh, no need to fetch
         end
+        if currentTab == "champions" and isCacheValid(cache.champions) then
+            return  -- Cache is fresh, no need to fetch
+        end
 
         -- Build command for async fetch
-        local cmd = string.format(
-            "cd %s && lua %s %s %d %d %s",
-            fetchScript:match("^(.+)/[^/]+$") or ".",
-            fetchScript,
-            cacheFile,
-            cfg.defaults.team_id,
-            cfg.defaults.match_count,
-            currentCompetition.code
-        )
+        local cmd
+        if currentTab == "champions" then
+            cmd = string.format(
+                "cd %s && lua %s %s champions %s %d",
+                fetchScript:match("^(.+)/[^/]+$") or ".",
+                fetchScript,
+                cacheFile,
+                cfg.defaults.champions_league_code,
+                cfg.defaults.champions_match_count
+            )
+        else
+            cmd = string.format(
+                "cd %s && lua %s %s %d %d %s",
+                fetchScript:match("^(.+)/[^/]+$") or ".",
+                fetchScript,
+                cacheFile,
+                cfg.defaults.team_id,
+                cfg.defaults.match_count,
+                currentCompetition.code
+            )
+        end
 
         -- Run async
         awful.spawn.easy_async(cmd, function(stdout, stderr, exitreason, exitcode)
             if exitcode ~= 0 then
                 -- Only show error if we don't have cached data
-                if not cache.matches.data and not cache.standings.data then
+                if not cache.matches.data and not cache.standings.data and not cache.champions.data then
                     contentText.text = "Error: " .. (stderr or "fetch failed")
                 end
                 return
@@ -374,6 +421,9 @@ function match_window.create(args)
             if data.standings and data.standings.data then
                 cache.standings = data.standings
             end
+            if data.champions and data.champions.data then
+                cache.champions = data.champions
+            end
 
             -- Save to file
             saveCacheToFile(cacheFile, cache)
@@ -384,6 +434,9 @@ function match_window.create(args)
                 contentText.text = View.getFormattedResults(rawResults)
             elseif currentTab == "standings" and cache.standings.data then
                 contentText.text = View.getStandingsString(cache.standings.data, currentCompetition.name)
+            elseif currentTab == "champions" and cache.champions.data then
+                local rawResults = View.getMatchesString(cache.champions.data, true)
+                contentText.text = View.getFormattedResults(rawResults)
             end
         end)
     end
@@ -391,23 +444,32 @@ function match_window.create(args)
     -- Tab switching logic
     local function setActiveTab(tab)
         currentTab = tab
+        -- Reset all tabs to inactive
+        scoresTab.bg = colors.tab_inactive
+        standingsTab.bg = colors.tab_inactive
+        championsTab.bg = colors.tab_inactive
+        
+        -- Set active tab
         if tab == "scores" then
             scoresTab.bg = colors.tab_active
-            standingsTab.bg = colors.tab_inactive
             if popup then
                 local container = popup.widget:get_children_by_id("competitionContainer")[1]
                 if container then container.visible = false end
             end
-            updateContent()
-        else
-            scoresTab.bg = colors.tab_inactive
+        elseif tab == "standings" then
             standingsTab.bg = colors.tab_active
             if popup then
                 local container = popup.widget:get_children_by_id("competitionContainer")[1]
                 if container then container.visible = true end
             end
-            updateContent()
+        else  -- champions
+            championsTab.bg = colors.tab_active
+            if popup then
+                local container = popup.widget:get_children_by_id("competitionContainer")[1]
+                if container then container.visible = false end
+            end
         end
+        updateContent()
     end
 
     -- Create the popup window
@@ -459,6 +521,7 @@ function match_window.create(args)
                     {
                         scoresTab,
                         standingsTab,
+                        championsTab,
                         layout = wibox.layout.fixed.horizontal,
                         spacing = 4,
                     },
@@ -549,6 +612,13 @@ function match_window.create(args)
         end)
     ))
 
+    championsTab:buttons(gears.table.join(
+        awful.button({}, 1, function()
+            setActiveTab("champions")
+            updateContent()
+        end)
+    ))
+
     -- Hover effects for tabs
     scoresTab:connect_signal("mouse::enter", function(c)
         if currentTab ~= "scores" then
@@ -568,6 +638,17 @@ function match_window.create(args)
     end)
     standingsTab:connect_signal("mouse::leave", function(c)
         if currentTab ~= "standings" then
+            c.bg = colors.tab_inactive
+        end
+    end)
+
+    championsTab:connect_signal("mouse::enter", function(c)
+        if currentTab ~= "champions" then
+            c.bg = colors.tab_hover
+        end
+    end)
+    championsTab:connect_signal("mouse::leave", function(c)
+        if currentTab ~= "champions" then
             c.bg = colors.tab_inactive
         end
     end)
@@ -603,6 +684,7 @@ function match_window.create(args)
                 -- Invalidate cache to force refresh
                 cache.matches.timestamp = 0
                 cache.standings.timestamp = 0
+                cache.champions.timestamp = 0
                 if popup.visible then
                     updateContent()
                 end
