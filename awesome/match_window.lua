@@ -323,7 +323,7 @@ function match_window.create(args)
     local scoresTab = wibox.widget {
         {
             id = "label",
-            text = "\u{f080} Results",
+            text = "\u{f080}  Results",
             widget = wibox.widget.textbox,
             align = "center",
             valign = "center",
