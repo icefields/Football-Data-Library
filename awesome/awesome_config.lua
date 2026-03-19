@@ -59,15 +59,15 @@ config.fonts = {
 --------------------------------------------------------------------------------
 config.sizes = {
     -- Window dimensions
-    window_min_width = 750,
+    window_min_width = 550,
     window_max_width = 750,
     window_min_height = 740,  -- Minimum window height
     window_max_height = 950,  -- Max height to fit 1080p screens
-    
+
     -- Content container
     content_min_height = 300,  -- Minimum content area height
     content_max_height = 700,  -- Maximum content area height
-    content_width = 700,
+    -- content_width removed - follows window width dynamically
 
     -- Button (wibar icon)
     button_size = 24,  -- Fallback if beautiful.topBar_buttonSize not set

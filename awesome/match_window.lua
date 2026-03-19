@@ -379,7 +379,6 @@ function match_window.create(args)
         widget = wibox.widget.textbox,
         font = contentFont,
         fg = colors.fg_text,
-        forced_width = sizes.content_width,
     }
 
     -- Create tab buttons
@@ -754,7 +753,6 @@ function match_window.create(args)
                         },
                         widget = wibox.container.constraint,
                         strategy = "max",
-                        width = sizes.content_width,
                         height = sizes.content_max_height,
                     },
                 },
