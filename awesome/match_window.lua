@@ -116,10 +116,20 @@ end
 
 -- Initialize cache from file on first use
 local function ensureCacheLoaded(cacheFile)
-    if cache.matches.timestamp == 0 and cache.standings.timestamp == 0 and cache.champions.timestamp == 0 then
+    -- Load cache file if any timestamp is 0 (first load)
+    if cache.matches.timestamp == 0 or cache.standings.timestamp == 0 or cache.champions.timestamp == 0 then
         local fileCache = loadCacheFromFile(cacheFile)
         if fileCache then
-            cache = fileCache
+            -- Merge with existing cache (preserve any non-zero values)
+            if fileCache.matches and fileCache.matches.timestamp > 0 then
+                cache.matches = fileCache.matches
+            end
+            if fileCache.standings and fileCache.standings.timestamp > 0 then
+                cache.standings = fileCache.standings
+            end
+            if fileCache.champions and fileCache.champions.timestamp > 0 then
+                cache.champions = fileCache.champions
+            end
         end
     end
 end
@@ -182,12 +192,17 @@ local function getChampionsLeague(cacheFile)
     local success, result = pcall(function()
         local app = getFootballApp()
         local allMatches = app.service:getLatestScores("CL", false)
-        -- Limit to configured count
-        local limited = {}
-        for i = 1, math.min(default_config.defaults.champions_match_count, #allMatches) do
-            table.insert(limited, allMatches[i])
+        -- Filter to only finished matches and limit to configured count
+        local finished = {}
+        for _, match in ipairs(allMatches) do
+            if match.status == "FINISHED" then
+                table.insert(finished, match)
+                if #finished >= default_config.defaults.champions_match_count then
+                    break
+                end
+            end
         end
-        return limited
+        return finished
     end)
 
     if success and result then

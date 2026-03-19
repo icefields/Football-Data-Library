@@ -37,14 +37,19 @@ local result
 if mode == "champions" then
     -- Fetch Champions League matches
     local competitionCode = arg[3] or "CL"
-    local matchCount = tonumber(arg[4]) or 20
+    local matchCount = tonumber(arg[4]) or 15
     
     local allMatches = app.service:getLatestScores(competitionCode, false)
     
-    -- Limit to recent matches
+    -- Filter to only finished matches and limit to count
     local matches = {}
-    for i = 1, math.min(matchCount, #allMatches) do
-        table.insert(matches, allMatches[i])
+    for _, match in ipairs(allMatches) do
+        if match.status == "FINISHED" then
+            table.insert(matches, match)
+            if #matches >= matchCount then
+                break
+            end
+        end
     end
     
     result = {

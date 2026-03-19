@@ -177,7 +177,7 @@ config.defaults = {
     refresh_interval = 300,  -- 5 minutes
     cache_timeout = 300,     -- Cache data for 5 minutes
     champions_league_code = "CL",  -- Champions League competition code
-    champions_match_count = 20,     -- More matches for CL (all teams)
+    champions_match_count = 15,     -- Number of recent CL matches to show (finished only)
 }
 
 return config
