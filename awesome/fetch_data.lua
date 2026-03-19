@@ -28,8 +28,8 @@ local ok, app = pcall(function()
 end)
 
 if not ok then
-    -- Extract just the error message (remove stack trace)
-    local errMsg = tostring(app):match("^[^:]+") or tostring(app)
+    -- Extract error message (after last colon, or full message)
+    local errMsg = tostring(app):match(": ([^:]+)$") or tostring(app):match("^[^:]+: (.+)$") or tostring(app)
     io.stderr:write(errMsg .. "\n")
     os.exit(1)
 end
@@ -85,8 +85,8 @@ local success, err = pcall(function()
 end)
 
 if not success then
-    -- Extract just the error message (remove stack trace)
-    local errMsg = tostring(err):match("^[^:]+") or tostring(err)
+    -- Extract error message (after last colon, or full message)
+    local errMsg = tostring(err):match(": ([^:]+)$") or tostring(err):match("^[^:]+: (.+)$") or tostring(err)
     io.stderr:write(errMsg .. "\n")
     os.exit(1)
 end
