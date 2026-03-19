@@ -31,7 +31,7 @@ config.colors = {
     -- Background colors
     bg_header = "#3a3a5a",
     bg_tab_bar = "#0d0d1a",
-    bg_window = "#1a1a2e",
+    bg_window = "#0d0d1a",
     bg_button = "#00000000",
 }
 
@@ -60,8 +60,10 @@ config.sizes = {
     window_max_width = 750,
     window_min_height = 720,  -- Minimum window height
     window_max_height = 950,  -- Max height to fit 1080p screens
-
-    -- Content width
+    
+    -- Content container
+    content_min_height = 300,  -- Minimum content area height
+    content_max_height = 700,  -- Maximum content area height
     content_width = 700,
 
     -- Button (wibar icon)
@@ -178,10 +180,23 @@ config.defaults = {
     auto_refresh = true,
     refresh_interval = 300,  -- 5 minutes
     cache_timeout = 300,     -- Cache data for 5 minutes
-    champions_league_code = "CL",  -- Champions League competition code
+    -- Champions League code comes from COMPETITIONS (DRY)
     champions_match_count = 50,    -- Total CL matches to fetch (finished only)
     matches_per_page = 10,         -- Matches per page for pagination
 }
+
+-- Helper to get competition code by name (DRY)
+function config.getCompetitionCode(name)
+    for _, comp in ipairs(config.COMPETITIONS) do
+        if comp.name == name or comp.code == name then
+            return comp.code
+        end
+    end
+    return nil
+end
+
+-- Champions League code (DRY - from COMPETITIONS)
+config.CHAMPIONS_LEAGUE_CODE = config.COMPETITIONS[5] and config.COMPETITIONS[5].code or "CL"
 
 return config
 

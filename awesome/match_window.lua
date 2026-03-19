@@ -532,7 +532,7 @@ function match_window.create(args)
                 "lua %s %s champions %s %d",
                 fetchScript,
                 cacheFile,
-                cfg.defaults.champions_league_code,
+                cfg.CHAMPIONS_LEAGUE_CODE,
                 cfg.defaults.champions_match_count
             )
         else
@@ -730,17 +730,23 @@ function match_window.create(args)
                 margins = paddings.competition,
                 visible = false,
             },
-            -- Content area
+            -- Content area (expandable, will fill remaining space)
             {
                 {
-                    contentText,
-                    widget = wibox.container.background,
-                    bg = colors.bg_window,
+                    {
+                        contentText,
+                        widget = wibox.container.background,
+                        bg = colors.bg_window,
+                    },
+                    widget = wibox.container.margin,
+                    margins = paddings.content,
                 },
-                widget = wibox.container.margin,
-                margins = paddings.content,
+                widget = wibox.container.constraint,
+                strategy = "max",
+                width = sizes.content_width,
+                height = sizes.content_max_height,
             },
-            -- Pagination buttons (for Champions League)
+            -- Pagination buttons (anchored to bottom)
             {
                 id = "paginationContainer",
                 layout = wibox.layout.flex.horizontal,
