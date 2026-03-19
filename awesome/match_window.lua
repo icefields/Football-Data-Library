@@ -36,6 +36,66 @@ local cache = {
     champions = { data = nil, timestamp = 0 },  -- Champions League matches
 }
 
+-- Tab configuration (makes it easy to add new tabs)
+local TAB_CONFIG = {
+    scores = {
+        cache_key = "matches",
+        has_pagination = true,  -- Enable pagination for team results
+        fetch_mode = "team",
+    },
+    standings = {
+        cache_key = "standings",
+        has_pagination = false,
+        fetch_mode = "team",
+    },
+    champions = {
+        cache_key = "champions",
+        has_pagination = true,
+        fetch_mode = "champions",
+    },
+}
+
+-- Helper: Get paginated matches from cache
+local function getPaginatedMatches(cacheData, pageNum, perPage)
+    if not cacheData or #cacheData == 0 then
+        return {}, 0
+    end
+    local startIdx = (pageNum - 1) * perPage + 1
+    local endIdx = math.min(startIdx + perPage - 1, #cacheData)
+    local pageMatches = {}
+    for i = startIdx, endIdx do
+        table.insert(pageMatches, cacheData[i])
+    end
+    return pageMatches, #cacheData
+end
+
+-- Helper: Format and display content for a tab
+local function displayContentForTab(tabName, cacheEntry, pageNum, perPage)
+    local config = TAB_CONFIG[tabName]
+    if not config then return end
+    
+    local data = cache[config.cache_key]
+    if not data or not data.data then return end
+    
+    if config.has_pagination then
+        -- Paginated results (like champions)
+        local pageMatches, totalMatches = getPaginatedMatches(data.data, pageNum, perPage)
+        local rawResults = View.getMatchesString(pageMatches, true)
+        local formattedResults = View.getFormattedResults(rawResults)
+        local totalPages = math.ceil(totalMatches / perPage)
+        local pageIndicator = string.format("\n\n─── Page %d/%d ───", pageNum, totalPages)
+        return formattedResults .. pageIndicator, totalMatches
+    else
+        -- Non-paginated results
+        if tabName == "standings" then
+            return View.getStandingsString(data.data, cacheEntry.competition or "Serie A"), 0
+        else
+            local rawResults = View.getMatchesString(data.data, true)
+            return View.getFormattedResults(rawResults), 0
+        end
+    end
+end
+
 -- Load cache from file
 local function loadCacheFromFile(cacheFile)
     local file = io.open(cacheFile, "r")
@@ -393,8 +453,14 @@ function match_window.create(args)
     local paginationContainer = nil
     
     -- Helper to update pagination UI
-    local function updatePaginationUI(totalMatches)
-        if currentTab ~= "champions" or not totalMatches or totalMatches == 0 then
+    local function updatePaginationUI(tabName, totalMatches)
+        local config = TAB_CONFIG[tabName]
+        if not config or not config.has_pagination then
+            if paginationContainer then paginationContainer.visible = false end
+            return
+        end
+        
+        if not totalMatches or totalMatches == 0 then
             if paginationContainer then paginationContainer.visible = false end
             return
         end
@@ -420,32 +486,30 @@ function match_window.create(args)
         ensureCacheLoaded(cacheFile)
 
         -- Show cached data immediately if available
-        if currentTab == "scores" and cache.matches.data then
-            local rawResults = View.getMatchesString(cache.matches.data, true)
-            contentText.text = View.getFormattedResults(rawResults)
-            updatePaginationUI(0)  -- Hide pagination for scores
-        elseif currentTab == "standings" and cache.standings.data then
-            contentText.text = View.getStandingsString(cache.standings.data, currentCompetition.name)
-            updatePaginationUI(0)  -- Hide pagination for standings
-        elseif currentTab == "champions" and cache.champions.data then
-            -- Paginate champions results
-            local allMatches = cache.champions.data
-            local startIdx = (currentPage - 1) * matchesPerPage + 1
-            local endIdx = math.min(startIdx + matchesPerPage - 1, #allMatches)
-            local pageMatches = {}
-            for i = startIdx, endIdx do
-                table.insert(pageMatches, allMatches[i])
+        local config = TAB_CONFIG[currentTab]
+        if config then
+            local cacheData = cache[config.cache_key]
+            if cacheData and cacheData.data then
+                if config.has_pagination then
+                    -- Paginated results
+                    local pageMatches, totalMatches = getPaginatedMatches(cacheData.data, currentPage, matchesPerPage)
+                    local rawResults = View.getMatchesString(pageMatches, true)
+                    local formattedResults = View.getFormattedResults(rawResults)
+                    local totalPages = math.ceil(totalMatches / matchesPerPage)
+                    local pageIndicator = string.format("\n\n─── Page %d/%d ───", currentPage, totalPages)
+                    contentText.text = formattedResults .. pageIndicator
+                    updatePaginationUI(currentTab, totalMatches)
+                elseif currentTab == "standings" then
+                    contentText.text = View.getStandingsString(cacheData.data, currentCompetition.name)
+                    updatePaginationUI(currentTab, 0)
+                else
+                    local rawResults = View.getMatchesString(cacheData.data, true)
+                    contentText.text = View.getFormattedResults(rawResults)
+                    updatePaginationUI(currentTab, 0)
+                end
+            else
+                contentText.text = cfg.strings.loading
             end
-            local rawResults = View.getMatchesString(pageMatches, true)
-            local formattedResults = View.getFormattedResults(rawResults)
-            
-            -- Add page indicator
-            local totalPages = math.ceil(#allMatches / matchesPerPage)
-            local pageIndicator = string.format("\n\n─── Page %d/%d ───", currentPage, totalPages)
-            contentText.text = formattedResults .. pageIndicator
-            
-            -- Update pagination buttons
-            updatePaginationUI(#allMatches)
         else
             contentText.text = cfg.strings.loading
         end
@@ -487,14 +551,14 @@ function match_window.create(args)
             if exitcode ~= 0 then
                 -- Show cached data if available, with error message
                 local errorMsg = "⚠️ " .. (stderr or "fetch failed")
-                if currentTab == "scores" and cache.matches.data then
-                    local rawResults = View.getMatchesString(cache.matches.data, true)
-                    contentText.text = errorMsg .. "\n\n" .. View.getFormattedResults(rawResults)
-                elseif currentTab == "standings" and cache.standings.data then
-                    contentText.text = errorMsg .. "\n\n" .. View.getStandingsString(cache.standings.data, currentCompetition.name)
-                elseif currentTab == "champions" and cache.champions.data then
-                    local rawResults = View.getMatchesString(cache.champions.data, true)
-                    contentText.text = errorMsg .. "\n\n" .. View.getFormattedResults(rawResults)
+                local config = TAB_CONFIG[currentTab]
+                if config and cache[config.cache_key] and cache[config.cache_key].data then
+                    if currentTab == "standings" then
+                        contentText.text = errorMsg .. "\n\n" .. View.getStandingsString(cache[config.cache_key].data, currentCompetition.name)
+                    else
+                        local rawResults = View.getMatchesString(cache[config.cache_key].data, true)
+                        contentText.text = errorMsg .. "\n\n" .. View.getFormattedResults(rawResults)
+                    end
                 else
                     contentText.text = "Error: " .. errorMsg
                 end
@@ -515,22 +579,7 @@ function match_window.create(args)
                 return
             end
             
-            -- Debug: check data structure
-            if currentTab == "champions" then
-                if data.champions and data.champions.data then
-                    cache.champions = data.champions
-                end
-            else
-                -- scores/standings mode
-                if data.matches and data.matches.data then
-                    cache.matches = data.matches
-                end
-                if data.standings and data.standings.data then
-                    cache.standings = data.standings
-                end
-            end
-
-            -- Update in-memory cache (only update relevant cache based on mode)
+            -- Update cache based on mode
             if data.champions and data.champions.data then
                 cache.champions = data.champions
             end
@@ -544,33 +593,26 @@ function match_window.create(args)
             -- Save to file
             saveCacheToFile(cacheFile, cache)
 
-            -- Update display if still on same tab
-            if currentTab == "scores" and cache.matches.data then
-                local rawResults = View.getMatchesString(cache.matches.data, true)
-                contentText.text = View.getFormattedResults(rawResults)
-                updatePaginationUI(0)
-            elseif currentTab == "standings" and cache.standings.data then
-                contentText.text = View.getStandingsString(cache.standings.data, currentCompetition.name)
-                updatePaginationUI(0)
-            elseif currentTab == "champions" and cache.champions.data then
-                -- Paginate champions results
-                local allMatches = cache.champions.data
-                local startIdx = (currentPage - 1) * matchesPerPage + 1
-                local endIdx = math.min(startIdx + matchesPerPage - 1, #allMatches)
-                local pageMatches = {}
-                for i = startIdx, endIdx do
-                    table.insert(pageMatches, allMatches[i])
+            -- Update display based on current tab
+            local config = TAB_CONFIG[currentTab]
+            if config and cache[config.cache_key] and cache[config.cache_key].data then
+                if config.has_pagination then
+                    -- Paginated results
+                    local pageMatches, totalMatches = getPaginatedMatches(cache[config.cache_key].data, currentPage, matchesPerPage)
+                    local rawResults = View.getMatchesString(pageMatches, true)
+                    local formattedResults = View.getFormattedResults(rawResults)
+                    local totalPages = math.ceil(totalMatches / matchesPerPage)
+                    local pageIndicator = string.format("\n\n─── Page %d/%d ───", currentPage, totalPages)
+                    contentText.text = formattedResults .. pageIndicator
+                    updatePaginationUI(currentTab, totalMatches)
+                elseif currentTab == "standings" then
+                    contentText.text = View.getStandingsString(cache[config.cache_key].data, currentCompetition.name)
+                    updatePaginationUI(currentTab, 0)
+                else
+                    local rawResults = View.getMatchesString(cache[config.cache_key].data, true)
+                    contentText.text = View.getFormattedResults(rawResults)
+                    updatePaginationUI(currentTab, 0)
                 end
-                local rawResults = View.getMatchesString(pageMatches, true)
-                local formattedResults = View.getFormattedResults(rawResults)
-                
-                -- Add page indicator
-                local totalPages = math.ceil(#allMatches / matchesPerPage)
-                local pageIndicator = string.format("\n\n─── Page %d/%d ───", currentPage, totalPages)
-                contentText.text = formattedResults .. pageIndicator
-                
-                -- Update pagination buttons
-                updatePaginationUI(#allMatches)
             end
         end)
     end

@@ -173,7 +173,7 @@ config.COMPETITIONS = {
 --------------------------------------------------------------------------------
 config.defaults = {
     team_id = 108,  -- Inter Milan
-    match_count = 10,
+    match_count = 30,  -- Number of matches to fetch for team results
     show_scheduled = false,
     auto_refresh = true,
     refresh_interval = 300,  -- 5 minutes
