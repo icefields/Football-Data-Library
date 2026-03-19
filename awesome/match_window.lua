@@ -467,25 +467,28 @@ function match_window.create(args)
             
             -- Debug: check data structure
             if currentTab == "champions" then
-                if not data.champions then
-                    contentText.text = "No champions key in response"
-                    return
+                if data.champions and data.champions.data then
+                    cache.champions = data.champions
                 end
-                if not data.champions.data then
-                    contentText.text = "No champions.data key in response"
-                    return
+            else
+                -- scores/standings mode
+                if data.matches and data.matches.data then
+                    cache.matches = data.matches
+                end
+                if data.standings and data.standings.data then
+                    cache.standings = data.standings
                 end
             end
 
-            -- Update in-memory cache
+            -- Update in-memory cache (only update relevant cache based on mode)
+            if data.champions and data.champions.data then
+                cache.champions = data.champions
+            end
             if data.matches and data.matches.data then
                 cache.matches = data.matches
             end
             if data.standings and data.standings.data then
                 cache.standings = data.standings
-            end
-            if data.champions and data.champions.data then
-                cache.champions = data.champions
             end
 
             -- Save to file
@@ -542,6 +545,7 @@ function match_window.create(args)
         placement = awful.placement.centered,
         minimum_width = sizes.window_min_width,
         maximum_width = sizes.window_max_width,
+        minimum_height = sizes.window_min_height,
         maximum_height = sizes.window_max_height,
         widget = wibox.widget {
             layout = wibox.layout.fixed.vertical,
@@ -607,7 +611,7 @@ function match_window.create(args)
                 margins = paddings.competition,
                 visible = false,
             },
-            -- Content area (scrollable)
+            -- Content area (scrollable, no autoscroll
             {
                 {
                     {
@@ -620,6 +624,7 @@ function match_window.create(args)
                 },
                 widget = wibox.container.scroll.vertical,
                 step = sizes.scroll_step,
+                scroll_speed = 0,  -- Disable auto-scroll
             },
         }
     }

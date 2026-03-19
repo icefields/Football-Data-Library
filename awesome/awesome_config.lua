@@ -58,6 +58,7 @@ config.sizes = {
     -- Window dimensions
     window_min_width = 750,
     window_max_width = 750,
+    window_min_height = 400,  -- Minimum window height
     window_max_height = 900,  -- Max height to fit 1080p screens
     
     -- Content width
