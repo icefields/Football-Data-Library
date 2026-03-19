@@ -313,6 +313,30 @@ function match_window.create(args)
         forced_width = sizes.content_width,
     }
 
+    -- Scrollable content container
+    local contentScroll = wibox.widget {
+        {
+            {
+                contentText,
+                widget = wibox.container.background,
+                bg = colors.bg_window,
+            },
+            widget = wibox.container.margin,
+            margins = paddings.content,
+        },
+        widget = wibox.container.scroll.vertical,
+        step = sizes.scroll_step,
+        speed = 0,
+        expand = true,
+        scroll_speed = 0,
+    }
+
+    -- Enable mouse wheel scrolling
+    contentScroll:buttons(gears.table.join(
+        awful.button({}, 4, function() contentScroll:scroll_up() end),
+        awful.button({}, 5, function() contentScroll:scroll_down() end)
+    ))
+
     -- Create tab buttons
     local scoresTab = wibox.widget {
         {
@@ -618,22 +642,7 @@ function match_window.create(args)
                 visible = false,
             },
             -- Content area (scrollable, manual scroll only)
-            {
-                {
-                    {
-                        contentText,
-                        widget = wibox.container.background,
-                        bg = colors.bg_window,
-                    },
-                    widget = wibox.container.margin,
-                    margins = paddings.content,
-                },
-                widget = wibox.container.scroll.vertical,
-                step = sizes.scroll_step,
-                speed = 0,  -- No auto-scroll
-                expand = true,  -- Expand to fit content
-                scroll_speed = 0,  -- Disable auto-scroll (alternative option)
-            },
+            contentScroll,
         }
     }
 
