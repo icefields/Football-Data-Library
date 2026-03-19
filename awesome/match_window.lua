@@ -229,6 +229,9 @@ function match_window.create(args)
         button_margin_bottom = 2,
         button_margin_left = 2,
         button_margin_right = 2,
+        
+        -- Icon padding (prevents clipping of Nerd Font glyphs)
+        icon_padding = 2,
     }
     
     -- Merge config with defaults
@@ -249,10 +252,6 @@ function match_window.create(args)
     
     local font = args.font or beautiful.font
     local currentCompetition = config.competitions and config.competitions[1] or match_window.COMPETITIONS[1]
-    local iconFont = args.icon_font or beautiful.topBar_button_font or beautiful.font
-    
-    -- Current tab: "scores" or "standings"
-    local currentTab = "scores"
     
     -- Popup colors from beautiful theme
     local popupBg = beautiful.tooltip_bg_color or beautiful.bg_normal or "#1a1a2e"
@@ -261,22 +260,35 @@ function match_window.create(args)
     -- Button size from beautiful theme
     local buttonSize = beautiful.topBar_buttonSize or beautiful.wibar_height or 24
     
+    -- Current tab: "scores" or "standings"
+    local currentTab = "scores"
+    
     -- Create the button widget (icon in wibar)
+    -- Nerd Font icons can extend beyond their bounding box, so we scale the font slightly smaller
+    local iconFont = args.icon_font or beautiful.topBar_button_font or beautiful.font
+    local iconFontSize = tonumber(iconFont:match("(%d+)$")) or 12
+    -- Make icon font slightly smaller than button to prevent clipping (Nerd Font glyphs extend beyond bounds)
+    local iconFontScaled = iconFont:gsub("(%d+)$", tostring(math.floor(iconFontSize * 0.85)))
+    
     local button = wibox.widget {
         {
-            id = "icon",
-            text = args.icon or "󰒸",  -- Nerd Font soccer/football icon
-            widget = wibox.widget.textbox,
-            align = "center",
+            {
+                id = "icon",
+                text = args.icon or "󰒸",  -- Nerd Font soccer/football icon
+                widget = wibox.widget.textbox,
+                align = "center",
+                valign = "center",
+                font = iconFontScaled,  -- Scaled down to prevent clipping
+            },
+            widget = wibox.container.place,
+            halign = "center",
             valign = "center",
-            font = iconFont
         },
         widget = wibox.container.background,
         bg = colors.bg_button,
         fg = colors.icon_color,
         shape = gears.shape.rounded_bar,
         forced_height = buttonSize,
-        forced_width = buttonSize,  -- Make it square
     }
     
     -- Wrap button in margin container for spacing from bar edges
