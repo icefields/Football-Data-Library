@@ -59,7 +59,13 @@ function ApiClient:request(endpoint, params)
     
     if statusCode ~= 200 then
         local bodyStr = table.concat(responseBody)
-        error("API request failed: HTTP " .. tostring(statusCode) .. " - " .. bodyStr)
+        -- Try to parse error JSON and extract message
+        local ok, errData = pcall(function() return cjson.decode(bodyStr) end)
+        if ok and errData and errData.message then
+            error("API error: " .. errData.message)
+        else
+            error("API request failed: HTTP " .. tostring(statusCode) .. " - " .. bodyStr)
+        end
     end
     
     -- Parse JSON response

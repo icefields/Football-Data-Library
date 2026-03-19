@@ -28,56 +28,67 @@ local ok, app = pcall(function()
 end)
 
 if not ok then
-    io.stderr:write("Failed to initialize: " .. tostring(app) .. "\n")
+    -- Extract just the error message (remove stack trace)
+    local errMsg = tostring(app):match("^[^:]+") or tostring(app)
+    io.stderr:write(errMsg .. "\n")
     os.exit(1)
 end
 
 local result
 
-if mode == "champions" then
-    -- Fetch Champions League matches
-    local competitionCode = arg[3] or "CL"
-    local matchCount = tonumber(arg[4]) or 15
-    
-    local allMatches = app.service:getLatestScores(competitionCode, false)
-    
-    -- Filter to only finished matches and limit to count
-    local matches = {}
-    for _, match in ipairs(allMatches) do
-        if match.status == "FINISHED" then
-            table.insert(matches, match)
-            if #matches >= matchCount then
-                break
+local success, err = pcall(function()
+    if mode == "champions" then
+        -- Fetch Champions League matches
+        local competitionCode = arg[3] or "CL"
+        local matchCount = tonumber(arg[4]) or 15
+        
+        local allMatches = app.service:getLatestScores(competitionCode, false)
+        
+        -- Filter to only finished matches and limit to count
+        local matches = {}
+        for _, match in ipairs(allMatches) do
+            if match.status == "FINISHED" then
+                table.insert(matches, match)
+                if #matches >= matchCount then
+                    break
+                end
             end
         end
+        
+        result = {
+            champions = {
+                data = matches,
+                timestamp = os.time(),
+            },
+        }
+    else
+        -- Fetch team matches and standings
+        local teamId = tonumber(arg[2]) or 108
+        local matchCount = tonumber(arg[3]) or 10
+        local competitionCode = arg[4] or "SA"
+        
+        local matches = app.service:getTeamScores(teamId, matchCount, false)
+        local standings = app.service:getStandings(competitionCode)
+        
+        result = {
+            matches = {
+                data = matches,
+                timestamp = os.time(),
+            },
+            standings = {
+                data = standings,
+                timestamp = os.time(),
+                competition = competitionCode,
+            },
+        }
     end
-    
-    result = {
-        champions = {
-            data = matches,
-            timestamp = os.time(),
-        },
-    }
-else
-    -- Fetch team matches and standings
-    local teamId = tonumber(arg[2]) or 108
-    local matchCount = tonumber(arg[3]) or 10
-    local competitionCode = arg[4] or "SA"
-    
-    local matches = app.service:getTeamScores(teamId, matchCount, false)
-    local standings = app.service:getStandings(competitionCode)
-    
-    result = {
-        matches = {
-            data = matches,
-            timestamp = os.time(),
-        },
-        standings = {
-            data = standings,
-            timestamp = os.time(),
-            competition = competitionCode,
-        },
-    }
+end)
+
+if not success then
+    -- Extract just the error message (remove stack trace)
+    local errMsg = tostring(err):match("^[^:]+") or tostring(err)
+    io.stderr:write(errMsg .. "\n")
+    os.exit(1)
 end
 
 -- Save to cache file
