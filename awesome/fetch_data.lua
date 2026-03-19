@@ -39,7 +39,13 @@ if mode == "champions" then
     local competitionCode = arg[3] or "CL"
     local matchCount = tonumber(arg[4]) or 20
     
-    local matches = app.service:getLatestScores(competitionCode, false)
+    local allMatches = app.service:getLatestScores(competitionCode, false)
+    
+    -- Limit to recent matches
+    local matches = {}
+    for i = 1, math.min(matchCount, #allMatches) do
+        table.insert(matches, allMatches[i])
+    end
     
     result = {
         champions = {

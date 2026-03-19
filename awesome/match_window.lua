@@ -116,7 +116,7 @@ end
 
 -- Initialize cache from file on first use
 local function ensureCacheLoaded(cacheFile)
-    if cache.matches.timestamp == 0 and cache.standings.timestamp == 0 then
+    if cache.matches.timestamp == 0 and cache.standings.timestamp == 0 and cache.champions.timestamp == 0 then
         local fileCache = loadCacheFromFile(cacheFile)
         if fileCache then
             cache = fileCache
