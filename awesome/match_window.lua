@@ -389,6 +389,24 @@ function match_window.create(args)
     -- Forward declarations for pagination buttons
     local prevPageBtn = nil
     local nextPageBtn = nil
+    local pageIndicatorWidget = nil
+    local paginationContainer = nil
+    
+    -- Helper to update pagination UI
+    local function updatePaginationUI(totalMatches)
+        if currentTab ~= "champions" or not totalMatches or totalMatches == 0 then
+            if paginationContainer then paginationContainer.visible = false end
+            return
+        end
+        
+        local totalPages = math.ceil(totalMatches / matchesPerPage)
+        if paginationContainer then paginationContainer.visible = true end
+        if prevPageBtn then prevPageBtn.visible = currentPage > 1 end
+        if nextPageBtn then nextPageBtn.visible = currentPage < totalPages end
+        if pageIndicatorWidget then
+            pageIndicatorWidget.text = string.format("Page %d/%d", currentPage, totalPages)
+        end
+    end
 
     -- Cache file path
     local cacheFile = cfg.paths.cache_file
@@ -405,8 +423,10 @@ function match_window.create(args)
         if currentTab == "scores" and cache.matches.data then
             local rawResults = View.getMatchesString(cache.matches.data, true)
             contentText.text = View.getFormattedResults(rawResults)
+            updatePaginationUI(0)  -- Hide pagination for scores
         elseif currentTab == "standings" and cache.standings.data then
             contentText.text = View.getStandingsString(cache.standings.data, currentCompetition.name)
+            updatePaginationUI(0)  -- Hide pagination for standings
         elseif currentTab == "champions" and cache.champions.data then
             -- Paginate champions results
             local allMatches = cache.champions.data
@@ -423,6 +443,9 @@ function match_window.create(args)
             local totalPages = math.ceil(#allMatches / matchesPerPage)
             local pageIndicator = string.format("\n\n─── Page %d/%d ───", currentPage, totalPages)
             contentText.text = formattedResults .. pageIndicator
+            
+            -- Update pagination buttons
+            updatePaginationUI(#allMatches)
         else
             contentText.text = cfg.strings.loading
         end
@@ -525,8 +548,10 @@ function match_window.create(args)
             if currentTab == "scores" and cache.matches.data then
                 local rawResults = View.getMatchesString(cache.matches.data, true)
                 contentText.text = View.getFormattedResults(rawResults)
+                updatePaginationUI(0)
             elseif currentTab == "standings" and cache.standings.data then
                 contentText.text = View.getStandingsString(cache.standings.data, currentCompetition.name)
+                updatePaginationUI(0)
             elseif currentTab == "champions" and cache.champions.data then
                 -- Paginate champions results
                 local allMatches = cache.champions.data
@@ -544,15 +569,8 @@ function match_window.create(args)
                 local pageIndicator = string.format("\n\n─── Page %d/%d ───", currentPage, totalPages)
                 contentText.text = formattedResults .. pageIndicator
                 
-                -- Update pagination buttons visibility
-                if paginationContainer then paginationContainer.visible = true end
-                if prevPageBtn then prevPageBtn.visible = currentPage > 1 end
-                if nextPageBtn then 
-                    nextPageBtn.visible = currentPage < totalPages 
-                end
-                if pageIndicatorWidget then
-                    pageIndicatorWidget.text = string.format("Page %d/%d", currentPage, totalPages)
-                end
+                -- Update pagination buttons
+                updatePaginationUI(#allMatches)
             end
         end)
     end
@@ -720,8 +738,8 @@ function match_window.create(args)
     -- Get pagination buttons
     prevPageBtn = popup.widget:get_children_by_id("prevPageBtn")[1]
     nextPageBtn = popup.widget:get_children_by_id("nextPageBtn")[1]
-    local pageIndicator = popup.widget:get_children_by_id("pageIndicator")[1]
-    local paginationContainer = popup.widget:get_children_by_id("paginationContainer")[1]
+    pageIndicatorWidget = popup.widget:get_children_by_id("pageIndicator")[1]
+    paginationContainer = popup.widget:get_children_by_id("paginationContainer")[1]
 
     -- Pagination button handlers
     if prevPageBtn then
@@ -748,9 +766,6 @@ function match_window.create(args)
             end)
         ))
     end
-    
-    -- Store page indicator for updating
-    local pageIndicatorWidget = pageIndicator
 
     -- Populate competition buttons
     for _, comp in ipairs(competitions) do
