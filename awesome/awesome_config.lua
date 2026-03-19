@@ -32,6 +32,7 @@ config.colors = {
     bg_header = "#3a3a5a",
     bg_tab_bar = "#0d0d1a",
     bg_window = "#0d0d1a",
+    bg_popup = "#1a1a2e",  -- Main popup/container background
     bg_button = "#00000000",
 }
 

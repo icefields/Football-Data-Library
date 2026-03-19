@@ -780,7 +780,9 @@ function match_window.create(args)
                 },
                 visible = false,
             },
-        }
+        },
+        widget = wibox.container.background,
+        bg = colors.bg_popup,
     }
 
     -- Get pagination buttons
