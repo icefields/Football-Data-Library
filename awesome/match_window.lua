@@ -323,7 +323,7 @@ function match_window.create(args)
     local scoresTab = wibox.widget {
         {
             id = "label",
-            text = "📊 Results",
+            text = "  Results",
             widget = wibox.widget.textbox,
             align = "center",
             valign = "center",
@@ -341,7 +341,7 @@ function match_window.create(args)
     local standingsTab = wibox.widget {
         {
             id = "label",
-            text = "🏆 Standings",
+            text = "\u{f091} Standings",
             widget = wibox.widget.textbox,
             align = "center",
             valign = "center",
@@ -476,7 +476,6 @@ function match_window.create(args)
         placement = awful.placement.centered,
         minimum_width = 750,
         maximum_width = 750,
-        minimum_height = 600,
         widget = wibox.widget {
             layout = wibox.layout.fixed.vertical,
             -- Header with close button
@@ -546,7 +545,6 @@ function match_window.create(args)
                     contentText,
                     widget = wibox.container.background,
                     bg = popupBg,
-                    forced_height = 450,
                 },
                 widget = wibox.container.margin,
                 margins = 8,
