@@ -286,22 +286,17 @@ config.defaults = {
 }
 
 function config.getColors(beautiful)
-    -- Return a copy of colors with beautiful theme overrides
     -- Beautiful theme takes priority over config defaults
-    local c = {}
-    for k, v in pairs(colors) do
-        c[k] = v
+    if beautiful then
+        colors.icon_color = beautiful.topBar_fg or colors.icon_color
+        colors.bg_popup = beautiful.tooltip_bg_color or colors.bg_popup
+        colors.fg_content = beautiful.tooltip_fg_color or colors.fg_content
+        colors.fg_header = beautiful.tooltip_fg_color or colors.fg_header
+        colors.fg_tab = beautiful.tooltip_fg_color or colors.fg_tab
+        colors.fg_pagination_button = beautiful.tooltip_fg_color or colors.fg_pagination_button
+        colors.fg_pagination_label = beautiful.tooltip_fg_color or colors.fg_pagination_label
     end
-    if beautiful ~= nil then
-        c.icon_color = beautiful.topBar_fg or c.icon_color
-        c.bg_popup = beautiful.tooltip_bg_color or c.bg_popup
-        c.fg_content = beautiful.tooltip_fg_color or c.fg_content
-        c.fg_header = beautiful.tooltip_fg_color or c.fg_header
-        c.fg_tab = beautiful.tooltip_fg_color or c.fg_tab
-        c.fg_pagination_button = beautiful.tooltip_fg_color or c.fg_pagination_button
-        c.fg_pagination_label = beautiful.tooltip_fg_color or c.fg_pagination_label
-    end
-    return c
+    return colors
 end
 
 function config.getFonts(beautiful)
