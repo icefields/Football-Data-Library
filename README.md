@@ -765,7 +765,349 @@ print(text)
 
 ## AwesomeWM Integration
 
-### Basic Widget
+### Match Window Widget (Recommended)
+
+The library includes a full-featured popup widget with tabs, pagination, and competition switching.
+
+**Features:**
+- Three tabs: Results, Standings, Champions League
+- Pagination for Results and Champions League (10 matches per page)
+- Competition selector for Standings tab (switch between Serie A, Premier League, etc.)
+- JSON file caching (5-minute timeout, no API calls on reload)
+- Beautiful theme color integration
+- Auto-refresh timer (configurable)
+
+**Basic Usage:**
+
+```lua
+-- In your rc.lua
+local awful = require("awful")
+local wibox = require("wibox")
+local gears = require("gears")
+local beautiful = require("beautiful")
+
+-- Add library paths
+package.path = package.path .. ";/path/to/Football-Data-Library/?.lua;"
+    .. ";/path/to/Football-Data-Library/?/init.lua;"
+
+-- Require the match_window module
+local match_window = require("awesome.match_window")
+
+-- Create the widget
+local football_widget, football_controls = match_window.create({
+    awful = awful,
+    wibox = wibox,
+    gears = gears,
+    beautiful = beautiful,
+})
+
+-- Add to your wibar
+mywibar:setup({
+    layout = wibox.layout.align.horizontal,
+    {
+        -- Left widgets
+        mylauncher,
+        s.mytaglist,
+        s.mylayoutbox,
+        football_widget,  -- Add here or wherever fits your layout
+        -- ...
+    },
+    -- Middle and right widgets...
+})
+
+-- Cleanup on exit
+awesome.connect_signal("exit", function()
+    if football_controls.timer then
+        football_controls.timer:stop()
+    end
+end)
+```
+
+---
+
+### Configuration
+
+Override default settings by passing a config table:
+
+```lua
+local football_widget, controls = match_window.create({
+    awful = awful,
+    wibox = wibox,
+    gears = gears,
+    beautiful = beautiful,
+    -- Custom configuration
+    config = {
+        defaults = {
+            team_id = 108,           -- Your team (Inter Milan default)
+            match_count = 20,         -- Matches to fetch
+            matches_per_page = 10,    -- Pagination
+            cache_timeout = 300,      -- 5-minute cache
+            auto_refresh = true,      -- Enable auto-refresh
+            refresh_interval = 300,   -- 5 minutes
+        },
+        colors = {
+            fg_text = "#ffffff",
+            bg_popup = "#1a1a2e",
+            -- ... see awesome_config.lua for all options
+        },
+        sizes = {
+            window_min_width = 750,
+            window_max_height = 950,
+            -- ... see awesome_config.lua for all options
+        },
+    },
+})
+```
+
+#### Key Configuration Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `team_id` | 108 | Team ID for Results tab (108 = Inter Milan) |
+| `match_count` | 30 | Number of matches to fetch |
+| `matches_per_page` | 10 | Matches per page (pagination) |
+| `cache_timeout` | 300 | Cache validity in seconds |
+| `auto_refresh` | true | Enable automatic refresh timer |
+| `refresh_interval` | 300 | Refresh interval in seconds |
+
+#### Colors (from Beautiful Theme)
+
+The widget uses these `beautiful` theme colors when available, falling back to config defaults:
+
+| Beautiful Variable | Purpose |
+|-------------------|---------|
+| `topBar_fg` | Football icon color |
+| `tooltip_bg_color` | Popup background |
+| `tooltip_fg_color` | Popup text color |
+
+#### Window Dimensions
+
+| Size Option | Default | Description |
+|-------------|---------|-------------|
+| `window_min_width` | 750 | Minimum popup width |
+| `window_max_width` | 750 | Maximum popup width |
+| `window_min_height` | 740 | Minimum popup height |
+| `window_max_height` | 950 | Maximum popup height |
+| `content_max_height` | 700 | Maximum content area height |
+
+---
+
+### Adding or Removing Tabs
+
+The widget has three tabs defined in `TAB_CONFIG` (in `match_window.lua`):
+
+```lua
+local TAB_CONFIG = {
+    scores = { cache_key = "matches", has_pagination = true, fetch_mode = "team" },
+    standings = { cache_key = "standings", has_pagination = false, fetch_mode = "team" },
+    champions = { cache_key = "champions", has_pagination = true, fetch_mode = "champions" },
+}
+```
+
+#### To Remove a Tab
+
+Edit `match_window.lua` and:
+
+1. Remove the tab from `TAB_CONFIG`
+2. Remove the tab button widget (e.g., `championsTab`)
+3. Remove the tab button click handler
+4. Remove the tab hover effects
+
+Example - Remove Champions League tab:
+
+```lua
+-- Remove from TAB_CONFIG
+local TAB_CONFIG = {
+    scores = { cache_key = "matches", has_pagination = true, fetch_mode = "team" },
+    standings = { cache_key = "standings", has_pagination = false, fetch_mode = "team" },
+    -- champions removed
+}
+
+-- Remove tab button declaration (around line 340)
+-- local championsTab = ... (delete this)
+
+-- Remove from tab bar layout (around line 700)
+-- {
+--     championsTab,  -- Remove this line
+--     ...
+-- }
+
+-- Remove click handler (around line 890)
+-- championsTab:buttons(...)
+
+-- Remove hover effects (around line 920)
+-- championsTab:connect_signal(...)
+```
+
+#### To Add a New Tab
+
+1. Add entry to `TAB_CONFIG`:
+
+```lua
+local TAB_CONFIG = {
+    scores = { cache_key = "matches", has_pagination = true, fetch_mode = "team" },
+    standings = { cache_key = "standings", has_pagination = false, fetch_mode = "team" },
+    champions = { cache_key = "champions", has_pagination = true, fetch_mode = "champions" },
+    -- New tab for team stats
+    stats = { cache_key = "stats", has_pagination = false, fetch_mode = "team" },
+}
+```
+
+2. Create tab button widget:
+
+```lua
+local statsTab = wibox.widget {
+    {
+        {
+            text = cfg.icons.results .. " Stats",  -- Use appropriate icon
+            widget = wibox.widget.textbox,
+            font = tabFont,
+            align = "center",
+        },
+        widget = wibox.container.margin,
+        margins = 10,
+    },
+    bg = colors.tab_inactive,
+    fg = colors.fg_text,
+    widget = wibox.container.background,
+    forced_width = sizes.tab_width,
+    forced_height = sizes.tab_height,
+    shape = gears.shape.rounded_bar,
+}
+```
+
+3. Add click handler:
+
+```lua
+statsTab:buttons(gears.table.join(
+    awful.button({}, 1, function()
+        setActiveTab("stats")
+        updateContent()
+    end)
+))
+```
+
+4. Add hover effects:
+
+```lua
+statsTab:connect_signal("mouse::enter", function(c)
+    if currentTab ~= "stats" then
+        c.bg = colors.tab_hover
+    end
+end)
+statsTab:connect_signal("mouse::leave", function(c)
+    if currentTab ~= "stats" then
+        c.bg = colors.tab_inactive
+    end
+end)
+```
+
+5. Add to tab bar layout (after `championsTab`).
+
+6. Add fetch logic in `updateContent()` function.
+
+---
+
+### Pagination System
+
+The Results and Champions League tabs use pagination (10 matches per page by default).
+
+**How it works:**
+- `matches_per_page` config controls items per page
+- Prev/Next buttons appear when multiple pages exist
+- Page indicator shows current page (e.g., "Page 1/3")
+- Pagination state resets when switching tabs
+
+**Adjust pagination:**
+
+```lua
+local football_widget, controls = match_window.create({
+    -- ...
+    config = {
+        defaults = {
+            matches_per_page = 15,  -- Show 15 matches per page
+        },
+    },
+})
+```
+
+---
+
+### Caching System
+
+The widget uses JSON file caching to minimize API calls:
+
+- **Cache file:** `~/.cache/football_data.json`
+- **Cache timeout:** 5 minutes (configurable via `cache_timeout`)
+- **Structure:** Separate cache entries for matches, standings, and champions
+
+**Cache behavior:**
+1. On widget open, load cached data immediately
+2. If cache expired, fetch new data in background
+3. Show cached data while fetching
+4. Update display when new data arrives
+
+**Force refresh:**
+- Close and reopen widget after cache timeout
+- Or invalidate cache programmatically:
+
+```lua
+controls.setTeamId(108)  -- This invalidates the matches cache
+```
+
+---
+
+### Competition Selector
+
+The Standings tab has a competition selector to switch between leagues.
+
+**Default competitions:**
+- Serie A (SA)
+- Premier League (PL)
+- La Liga (PD)
+- Bundesliga (BL1)
+- Champions League (CL)
+
+**Customize competitions:**
+
+```lua
+local football_widget, controls = match_window.create({
+    -- ...
+    competitions = {
+        { name = "Serie A", code = "SA" },
+        { name = "Premier League", code = "PL" },
+        { name = "Ligue 1", code = "FL1" },  -- Add/remove as needed
+    },
+})
+```
+
+---
+
+### Team IDs Reference
+
+| Team | ID |
+|------|-----|
+| Inter Milan | 108 |
+| AC Milan | 98 |
+| Juventus | 109 |
+| Napoli | 113 |
+| Arsenal | 57 |
+| Chelsea | 61 |
+| Manchester United | 66 |
+| Manchester City | 65 |
+| Liverpool | 64 |
+| Barcelona | 81 |
+| Real Madrid | 86 |
+| Bayern Munich | 5 |
+
+Find more team IDs using:
+```bash
+lua cli.lua teams SA  # List all Serie A teams
+```
+
+---
+
+### Basic Widget (Simple Popup)
 
 ```lua
 -- In your rc.lua
