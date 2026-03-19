@@ -17,6 +17,7 @@
 
 local FootballData = require("football")
 local View = require("football.view")
+local cjson = require("cjson")
 
 local match_window = {}
 
@@ -327,7 +328,10 @@ function match_window.create(args)
     -- Cache file path
     local cacheFile = config.cache_file or default_config.cache_file
     
-    -- Update content based on current tab (async version to prevent UI blocking)
+    -- Path to fetch script (same directory as this file)
+    local fetchScript = debug.getinfo(1, "S").source:match("^@(.+/)match_window%.lua$") .. "fetch_data.lua"
+    
+    -- Update content based on current tab (async version)
     updateContent = function()
         -- Load cache first to show immediately if available
         ensureCacheLoaded(cacheFile)
@@ -341,28 +345,60 @@ function match_window.create(args)
             contentText.text = "Loading..."
         end
         
-        -- Use a timer to defer the fetch, allowing the UI to update first
-        gears.timer.start_new(0.01, function()
-            if currentTab == "scores" then
-                local matches, err = getTeamMatches(config, cacheFile)
-                if matches and #matches > 0 then
-                    contentText.text = View.getMatchesString(matches, true)
-                elseif err then
-                    contentText.text = "Error: " .. tostring(err)
-                else
-                    contentText.text = "No matches found"
+        -- Check if cache is still valid (no need to fetch)
+        if currentTab == "scores" and isCacheValid(cache.matches) then
+            return  -- Cache is fresh, no need to fetch
+        end
+        if currentTab == "standings" and isCacheValid(cache.standings) and cache.standings.competition == currentCompetition.code then
+            return  -- Cache is fresh, no need to fetch
+        end
+        
+        -- Build command for async fetch
+        local cmd = string.format(
+            "cd %s && lua %s %s %d %d %s",
+            fetchScript:match("^(.+)/[^/]+$") or ".",
+            fetchScript,
+            cacheFile,
+            config.team_id,
+            config.match_count,
+            currentCompetition.code
+        )
+        
+        -- Run async
+        awful.spawn.easy_async(cmd, function(stdout, stderr, exitreason, exitcode)
+            if exitcode ~= 0 then
+                -- Only show error if we don't have cached data
+                if not cache.matches.data and not cache.standings.data then
+                    contentText.text = "Error: " .. (stderr or "fetch failed")
                 end
-            else
-                local standings, err = getStandings(currentCompetition.code, cacheFile)
-                if standings and #standings > 0 then
-                    contentText.text = View.getStandingsString(standings, currentCompetition.name)
-                elseif err then
-                    contentText.text = "Error: " .. tostring(err)
-                else
-                    contentText.text = "No standings found"
-                end
+                return
             end
-            return false  -- Don't repeat the timer
+            
+            local success, data = pcall(function()
+                return cjson.decode(stdout)
+            end)
+            
+            if not success or not data then
+                return
+            end
+            
+            -- Update in-memory cache
+            if data.matches and data.matches.data then
+                cache.matches = data.matches
+            end
+            if data.standings and data.standings.data then
+                cache.standings = data.standings
+            end
+            
+            -- Save to file
+            saveCacheToFile(cacheFile, cache)
+            
+            -- Update display if still on same tab
+            if currentTab == "scores" and cache.matches.data then
+                contentText.text = View.getMatchesString(cache.matches.data, true)
+            elseif currentTab == "standings" and cache.standings.data then
+                contentText.text = View.getStandingsString(cache.standings.data, currentCompetition.name)
+            end
         end)
     end
     
