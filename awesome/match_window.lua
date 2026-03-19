@@ -406,8 +406,7 @@ function match_window.create(args)
         local cmd
         if currentTab == "champions" then
             cmd = string.format(
-                "cd %s && lua %s %s champions %s %d",
-                fetchScript:match("^(.+)/[^/]+$") or ".",
+                "lua %s %s champions %s %d",
                 fetchScript,
                 cacheFile,
                 cfg.defaults.champions_league_code,
@@ -415,8 +414,7 @@ function match_window.create(args)
             )
         else
             cmd = string.format(
-                "cd %s && lua %s %s %d %d %s",
-                fetchScript:match("^(.+)/[^/]+$") or ".",
+                "lua %s %s %d %d %s",
                 fetchScript,
                 cacheFile,
                 cfg.defaults.team_id,
@@ -424,9 +422,13 @@ function match_window.create(args)
                 currentCompetition.code
             )
         end
+        
+        -- Debug: show command being run
+        contentText.text = "Running: " .. (currentTab or "unknown") .. "..."
 
         -- Run async
         awful.spawn.easy_async(cmd, function(stdout, stderr, exitreason, exitcode)
+            
             -- Debug: show command and exit code
             local debug_info = "Cmd: " .. (currentTab or "unknown") .. " exit=" .. tostring(exitcode)
             
