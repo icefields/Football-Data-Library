@@ -281,9 +281,8 @@ function match_window.create(args)
                 valign = "center",
                 font = iconFontScaled,  -- Scaled down to prevent clipping
             },
-            widget = wibox.container.place,
-            halign = "center",
-            valign = "center",
+            widget = wibox.container.margin,
+            margins = colors.icon_padding or 2,
         },
         widget = wibox.container.background,
         bg = colors.bg_button,
@@ -300,6 +299,14 @@ function match_window.create(args)
         bottom = colors.button_margin_bottom,
         left = colors.button_margin_left,
         right = colors.button_margin_right,
+    }
+    
+    -- Center the button vertically in the wibar
+    local centeredButton = wibox.widget {
+        buttonContainer,
+        widget = wibox.container.place,
+        valign = "center",
+        halign = "center",
     }
     
     -- Create content text widget (shared by both tabs)
@@ -469,7 +476,7 @@ function match_window.create(args)
         placement = awful.placement.centered,
         minimum_width = 750,
         maximum_width = 750,
-        minimum_height = 550,
+        minimum_height = 600,
         widget = wibox.widget {
             layout = wibox.layout.fixed.vertical,
             -- Header with close button
@@ -539,7 +546,7 @@ function match_window.create(args)
                     contentText,
                     widget = wibox.container.background,
                     bg = popupBg,
-                    forced_height = 400,
+                    forced_height = 450,
                 },
                 widget = wibox.container.margin,
                 margins = 8,
@@ -674,7 +681,7 @@ function match_window.create(args)
         end
     end)
     
-    return buttonContainer, {
+    return centeredButton, {
         popup = popup,
         refresh = updateContent,
         timer = refresh_timer,
