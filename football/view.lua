@@ -218,8 +218,10 @@ end
 --   FC Internazionale Milano - Atalanta BC 1 - 1
 function View.getFormattedResults(rawResultsText)
     local lines = {}
+    local foundFinished = false
     
-    -- Parse each line from raw results
+    -- Collect all matches first to find the TIMED/FINISHED boundary
+    local matches = {}
     for line in rawResultsText:gmatch("[^\n]+") do
         -- Parse: [YYYY-MM-DD] home-team score - score away-team (STATUS) - Competition
         local dateStr, homeTeam, homeScore, awayScore, awayTeam, status, competition = line:match(
@@ -234,23 +236,45 @@ function View.getFormattedResults(rawResultsText)
         end
         
         if dateStr then
-            -- Format date line
-            local formattedDate = formatDateReadable(dateStr)
-            table.insert(lines, string.format("%s (%s)", formattedDate, competition or "Unknown"))
-            
-            -- Format match line
-            local matchLine = string.format("%s - %s", homeTeam or "Unknown", awayTeam or "Unknown")
-            
-            -- Add score for finished matches only
-            if status and status ~= "TIMED" and status ~= "SCHEDULED" and status ~= "POSTPONED" then
-                if homeScore and awayScore then
-                    matchLine = matchLine .. string.format(" %s - %s", homeScore, awayScore)
-                end
-            end
-            
-            table.insert(lines, matchLine)
-            table.insert(lines, "")  -- Empty line between matches
+            local isFinished = status and status ~= "TIMED" and status ~= "SCHEDULED" and status ~= "POSTPONED"
+            table.insert(matches, {
+                dateStr = dateStr,
+                homeTeam = homeTeam or "Unknown",
+                awayTeam = awayTeam or "Unknown",
+                homeScore = homeScore,
+                awayScore = awayScore,
+                status = status,
+                competition = competition or "Unknown",
+                isFinished = isFinished
+            })
         end
+    end
+    
+    -- Now format with separator between TIMED and FINISHED
+    local lastWasTimed = false
+    for i, match in ipairs(matches) do
+        -- Add separator before first finished match after timed ones
+        if not match.isFinished then
+            lastWasTimed = true
+        elseif match.isFinished and lastWasTimed then
+            table.insert(lines, "────────────────────────────────────────")
+            lastWasTimed = false
+        end
+        
+        -- Format date line
+        local formattedDate = formatDateReadable(match.dateStr)
+        table.insert(lines, string.format("%s (%s)", formattedDate, match.competition))
+        
+        -- Format match line
+        local matchLine = string.format("%s - %s", match.homeTeam, match.awayTeam)
+        
+        -- Add score for finished matches only
+        if match.isFinished and match.homeScore and match.awayScore then
+            matchLine = matchLine .. string.format(" %s - %s", match.homeScore, match.awayScore)
+        end
+        
+        table.insert(lines, matchLine)
+        table.insert(lines, "")  -- Empty line between matches
     end
     
     -- Remove trailing empty line
