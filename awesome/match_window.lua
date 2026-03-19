@@ -284,25 +284,13 @@ function match_window.create(args)
     -- Use config defaults (can override via args.config)
     local cfg = args.config or default_config
 
-    -- Color scheme (from config, can override via args.colors)
-    -- Merge with beautiful theme colors as fallbacks
+    -- Color scheme from config (can override via args.colors)
     local colors = args.colors or cfg.colors
-    if beautiful then
-        colors = {
-            fg_text = beautiful.fg_normal or colors.fg_text,
-            fg_text_dim = beautiful.fg_minimize or colors.fg_text_dim,
-            icon_color = beautiful.fg_normal or colors.icon_color,
-            icon_hover = beautiful.bg_urgent or colors.icon_hover,
-            tab_active = beautiful.bg_focus or colors.tab_active,
-            tab_inactive = beautiful.bg_normal or colors.tab_inactive,
-            tab_hover = beautiful.bg_urgent or colors.tab_hover,
-            bg_header = beautiful.bg_focus or colors.bg_header,
-            bg_tab_bar = beautiful.bg_minimize or colors.bg_tab_bar,
-            bg_window = beautiful.bg_minimize or colors.bg_window,
-            bg_popup = beautiful.bg_normal or colors.bg_popup,
-            bg_button = colors.bg_button,
-        }
-    end
+    
+    -- Override with beautiful theme colors for specific elements
+    colors.icon_color = beautiful.topBar_fg or colors.icon_color
+    colors.bg_popup = beautiful.tooltip_bg_color or colors.bg_popup
+    colors.fg_text = beautiful.tooltip_fg_color or colors.fg_text
 
     -- Merge config with defaults
     local config = {}
