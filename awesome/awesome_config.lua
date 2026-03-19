@@ -121,7 +121,7 @@ local sizes = {
     -- ═══════════════════════════════════════════════════════════════════════
     -- WINDOW DIMENSIONS
     -- ═══════════════════════════════════════════════════════════════════════
-    window_min_width = 550,       -- Minimum popup width (can't shrink below this)
+    window_min_width = 650,       -- Minimum popup width (can't shrink below this)
     window_max_width = 750,       -- Maximum popup width (can't expand beyond this)
     window_min_height = 740,      -- Minimum popup height
     window_max_height = 950,      -- Maximum popup height (fits 1080p screens)
