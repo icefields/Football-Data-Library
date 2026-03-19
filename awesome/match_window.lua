@@ -295,7 +295,7 @@ function match_window.create(args)
         widget = wibox.widget.textbox,
         font = args.font or beautiful.font,
         fg = popupFg,
-        forced_width = 650,
+        forced_width = 700,
     }
     
     -- Create tab buttons
@@ -453,8 +453,8 @@ function match_window.create(args)
         visible = false,
         ontop = true,
         placement = awful.placement.centered,
-        minimum_width = 700,
-        maximum_width = 700,
+        minimum_width = 750,
+        maximum_width = 750,
         minimum_height = 550,
         widget = wibox.widget {
             layout = wibox.layout.fixed.vertical,
