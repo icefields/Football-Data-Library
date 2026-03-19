@@ -59,7 +59,7 @@ config.fonts = {
 --------------------------------------------------------------------------------
 config.sizes = {
     -- Window dimensions
-    window_min_width = 550,
+    window_min_width = 650,
     window_max_width = 750,
     window_min_height = 740,  -- Minimum window height
     window_max_height = 950,  -- Max height to fit 1080p screens
