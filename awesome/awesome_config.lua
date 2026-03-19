@@ -304,10 +304,10 @@ function config.getFonts(beautiful)
     -- Content font: fallback chain
     f.content = fonts.content or beautiful.font
     -- Title font: fallback chain
-    f.title = fonts.title or beautiful.mainFont or f.content
+    f.title = fonts.title or beautiful.labelFontSans or beautiful.tooltip_font or f.content
     -- Pagination fonts: fallback to content
-    f.pagination_button = fonts.pagination_button or f.content
-    f.pagination_label = fonts.pagination_label or f.content
+    f.pagination_button = fonts.pagination_button or beautiful.labelFontSans or f.content
+    f.pagination_label = fonts.pagination_label or beautiful.labelFontSans or f.content
     -- Icon font: fallback chain
     f.icon = fonts.icon or beautiful.topBar_button_font or beautiful.font
     -- Scale factor
