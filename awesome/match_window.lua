@@ -287,30 +287,24 @@ function match_window.create(args)
     local wibox = args.wibox
     local gears = args.gears
 
+    if not awful or not beautiful or not wibox or not gears then
+        error("match_window requires 'awful', 'beautiful', 'wibox', and 'gears' modules")
+    end
+
     -- Use config defaults (can override via args.config)
     local cfg = args.config or default_config
-
-    -- Color scheme from config (can override via args.colors)
-    local colors = args.colors or cfg.colors
-    
-    -- Override with beautiful theme colors for specific elements
-    colors.icon_color = beautiful.topBar_fg or colors.icon_color
-    colors.bg_popup = beautiful.tooltip_bg_color or colors.bg_popup
-    colors.fg_text = beautiful.tooltip_fg_color or colors.fg_text
-
+    -- Color scheme from config
+    local colors = cfg.getColors(beautiful)
+     
     -- Merge config with defaults
     local config = {}
     for k, v in pairs(default_config) do
         config[k] = args[k] ~= nil and args[k] or v
     end
-    
-    if not awful or not beautiful or not wibox or not gears then
-        error("match_window requires 'awful', 'beautiful', 'wibox', and 'gears' modules")
-    end
-
+      
     -- Fonts (from config or beautiful theme)
-    local contentFont = args.font or cfg.fonts.content or beautiful.font
-    local titleFont = cfg.fonts.title or beautiful.mainFont or contentFont
+    local contentFont = beautiful.font or args.font or cfg.fonts.content    
+    local titleFont = beautiful.mainFont or cfg.fonts.title or contentFont
     local iconFontRaw = args.icon_font or cfg.fonts.icon or beautiful.topBar_button_font or beautiful.font
     local iconFontSize = tonumber(iconFontRaw:match("(%d+)$")) or 12
     local iconFontScaled = iconFontRaw:gsub("(%d+)$", tostring(math.floor(iconFontSize * cfg.fonts.icon_scale)))

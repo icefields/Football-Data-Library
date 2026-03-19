@@ -35,7 +35,7 @@ config.paths = {
 --   - icon_color: overridden by beautiful.topBar_fg
 --   - bg_popup: overridden by beautiful.tooltip_bg_color
 --   - fg_text: overridden by beautiful.tooltip_fg_color
-config.colors = {
+local colors = {
     -- ═══════════════════════════════════════════════════════════════════════
     -- TEXT COLORS (foreground)
     -- ═══════════════════════════════════════════════════════════════════════
@@ -83,7 +83,7 @@ config.colors = {
 -- Font handling: set to nil to use beautiful theme fonts as fallback
 -- Font strings should be in format: "FontName Size" (e.g., "JetBrains Mono 12")
 -- Icons use Nerd Font, scaled down 90% to prevent clipping
-config.fonts = {
+local fonts = {
     -- ═══════════════════════════════════════════════════════════════════════
     -- CONTENT FONTS
     -- ═══════════════════════════════════════════════════════════════════════
@@ -284,6 +284,22 @@ config.defaults = {
     champions_match_count = 50, -- Total CL matches to fetch (finished only)
     matches_per_page = 10,     -- Matches per page for Results and Champions tabs
 }
+
+function config.getColors(beautiful)
+    if beautiful ~= nil then
+        colors.icon_color = beautiful.topBar_fg or colors.icon_color
+        colors.bg_popup = beautiful.tooltip_bg_color or colors.bg_popup
+        colors.fg_text = beautiful.tooltip_fg_color or colors.fg_text
+    end
+    return colors
+end
+
+function config.getFonts(beautiful)
+    if beautiful ~= nil then
+    end
+    return fonts
+end
+
 
 -- Helper to get competition code by name (DRY)
 function config.getCompetitionCode(name)
