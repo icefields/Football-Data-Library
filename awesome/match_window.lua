@@ -374,7 +374,6 @@ function match_window.create(args)
         text = cfg.strings.click_to_load,
         widget = wibox.widget.textbox,
         font = contentFont,
-        fg = colors.fg_content,
     }
 
     -- Create tab buttons
@@ -743,6 +742,7 @@ function match_window.create(args)
                                 contentText,
                                 widget = wibox.container.background,
                                 bg = colors.bg_window,
+                                fg = colors.fg_content,
                             },
                             widget = wibox.container.margin,
                             margins = paddings.content,
