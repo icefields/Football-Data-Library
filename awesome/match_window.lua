@@ -209,6 +209,10 @@ function match_window.create(args)
         text = "#ffffff",
         text_dim = "#aaaaaa",
         
+        -- Icon colors
+        icon_color = "#ffffff",      -- Football icon color
+        icon_hover = "#3a3a5a",      -- Icon hover background
+        
         -- Tab colors
         tab_active = "#3a3a5a",
         tab_inactive = "#1a1a2e",
@@ -220,8 +224,17 @@ function match_window.create(args)
         bg_content = "#1a1a2e",
         bg_button = "#00000000",
         
-        -- Button hover
-        button_hover = "#3a3a5a",
+        -- Button padding (for wibar icon)
+        button_margin_top = 2,
+        button_margin_bottom = 2,
+        button_margin_left = 2,
+        button_margin_right = 2,
+        
+        -- Icon padding (inside button)
+        icon_padding_top = 2,
+        icon_padding_bottom = 2,
+        icon_padding_left = 4,
+        icon_padding_right = 4,
     }
     
     -- Merge config with defaults
@@ -250,18 +263,35 @@ function match_window.create(args)
     -- Create the button widget (icon in wibar)
     local button = wibox.widget {
         {
-            id = "icon",
-            text = args.icon or "󰒸",  -- Nerd Font soccer/football icon
-            widget = wibox.widget.textbox,
-            align = "center",
-            valign = "center",
-            font = iconFont
+            {
+                id = "icon",
+                text = args.icon or "󰒸",  -- Nerd Font soccer/football icon
+                widget = wibox.widget.textbox,
+                align = "center",
+                valign = "center",
+                font = iconFont
+            },
+            widget = wibox.container.margin,
+            top = colors.icon_padding_top,
+            bottom = colors.icon_padding_bottom,
+            left = colors.icon_padding_left,
+            right = colors.icon_padding_right,
         },
         widget = wibox.container.background,
         bg = colors.bg_button,
-        fg = colors.text,
+        fg = colors.icon_color,
         shape = gears.shape.rounded_bar,
         forced_height = beautiful.wibar_height or 24
+    }
+    
+    -- Wrap button in margin container for spacing
+    local buttonContainer = wibox.widget {
+        button,
+        widget = wibox.container.margin,
+        top = colors.button_margin_top,
+        bottom = colors.button_margin_bottom,
+        left = colors.button_margin_left,
+        right = colors.button_margin_right,
     }
     
     -- Create content text widget (shared by both tabs)
@@ -602,10 +632,10 @@ function match_window.create(args)
     
     -- Hover effect for button
     button:connect_signal("mouse::enter", function(c)
-        c.bg = colors.button_hover
+        c.bg = colors.icon_hover
     end)
     button:connect_signal("mouse::leave", function(c)
-        c.bg = nil
+        c.bg = colors.bg_button
     end)
     
     -- Auto-refresh timer
@@ -636,7 +666,7 @@ function match_window.create(args)
         end
     end)
     
-    return wibox.container.margin(button, 2, 2, 0, 0), {
+    return buttonContainer, {
         popup = popup,
         refresh = updateContent,
         timer = refresh_timer,
