@@ -18,50 +18,13 @@
 local FootballData = require("football")
 local View = require("football.view")
 local cjson = require("cjson")
+local default_config = require("awesome.awesome_config")
 
 local match_window = {}
 
--- Team ID constants
-match_window.TEAMS = {
-    INTER_MILAN = 108,
-    AC_MILAN = 98,
-    JUVENTUS = 109,
-    NAPOLI = 113,
-    ROMA = 100,
-    LAZIO = 110,
-    ARSENAL = 57,
-    CHELSEA = 61,
-    MAN_UNITED = 66,
-    MAN_CITY = 65,
-    LIVERPOOL = 64,
-    TOTTENHAM = 73,
-    BARCELONA = 81,
-    REAL_MADRID = 86,
-    ATLETICO_MADRID = 78,
-    BAYERN_MUNICH = 5,
-    DORTMUND = 165,
-    PSG = 85,
-}
-
--- Competition codes
-match_window.COMPETITIONS = {
-    { name = "Serie A", code = "SA" },
-    { name = "Premier League", code = "PL" },
-    { name = "La Liga", code = "PD" },
-    { name = "Bundesliga", code = "BL1" },
-    { name = "Champions League", code = "CL" },
-}
-
--- Default configuration
-local default_config = {
-    team_id = 108,
-    match_count = 10,
-    show_scheduled = false,
-    auto_refresh = true,
-    refresh_interval = 300,  -- 5 minutes
-    cache_timeout = 300,      -- Cache data for 5 minutes
-    cache_file = os.getenv("HOME") .. "/.cache/football_data.json",  -- Persistent cache
-}
+-- Re-export from config for backwards compatibility
+match_window.TEAMS = default_config.TEAMS
+match_window.COMPETITIONS = default_config.COMPETITIONS
 
 -- Singleton for football app
 local footballApp = nil
@@ -136,7 +99,7 @@ end
 
 -- Check if cache is valid
 local function isCacheValid(cacheEntry, timeout)
-    timeout = timeout or default_config.cache_timeout
+    timeout = timeout or default_config.defaults.cache_timeout
     return cacheEntry.data and (os.time() - cacheEntry.timestamp) < timeout
 end
 
@@ -203,36 +166,11 @@ end
 function match_window.create(args)
     args = args or {}
 
-    -- Color scheme (customizable via args.colors)
-    local colors = args.colors or {
-        -- Text colors
-        fg_text = "#ffffff",
-        fg_text_dim = "#aaaaaa",
-
-        -- Icon colors
-        icon_color = "#ffffff",      -- Football icon color
-        icon_hover = "#3a3a5a",      -- Icon hover background
-
-        -- Tab colors
-        tab_active = "#3a3a5a",
-        tab_inactive = "#1a1a2e",
-        tab_hover = "#5a5a8a",
-
-        -- Background colors
-        bg_header = "#3a3a5a",
-        bg_tab_bar = "#0d0d1a",
-        bg_window = "#1a1a2e",
-        bg_button = "#00000000",
-
-        -- Button margin (spacing from wibar edges)
-        button_margin_top = 2,
-        button_margin_bottom = 2,
-        button_margin_left = 2,
-        button_margin_right = 2,
-
-        -- Icon padding (prevents clipping of Nerd Font glyphs)
-        icon_padding = 2,
-    }
+    -- Use config defaults (can override via args.config)
+    local cfg = args.config or default_config
+    
+    -- Color scheme (from config, can override via args.colors)
+    local colors = args.colors or cfg.colors
 
     -- Merge config with defaults
     local config = {}
@@ -250,22 +188,26 @@ function match_window.create(args)
         error("match_window requires 'awful', 'beautiful', 'wibox', and 'gears' modules")
     end
 
-    local font = args.font or beautiful.font
-    local footballIcon = args.icon or "󰒸"  -- Nerd Font soccer/football icon (reusable)
-    local currentCompetition = config.competitions and config.competitions[1] or match_window.COMPETITIONS[1]
+    -- Fonts (from config or beautiful theme)
+    local contentFont = args.font or cfg.fonts.content or beautiful.font
+    local iconFontRaw = args.icon_font or cfg.fonts.icon or beautiful.topBar_button_font or beautiful.font
+    local iconFontSize = tonumber(iconFontRaw:match("(%d+)$")) or 12
+    local iconFontScaled = iconFontRaw:gsub("(%d+)$", tostring(math.floor(iconFontSize * cfg.fonts.icon_scale)))
     
-    -- Button size from beautiful theme
-    local buttonSize = beautiful.topBar_buttonSize or beautiful.wibar_height or 24
+    -- Icons (from config)
+    local footballIcon = args.icon or cfg.icons.football
+    
+    -- Sizes (from config)
+    local sizes = cfg.sizes
+    local paddings = cfg.paddings
+    
+    local currentCompetition = args.competitions and args.competitions[1] or cfg.COMPETITIONS[1]
+    
+    -- Button size from beautiful theme or config
+    local buttonSize = beautiful.topBar_buttonSize or beautiful.wibar_height or sizes.button_size
 
     -- Current tab: "scores" or "standings"
     local currentTab = "scores"
-
-    -- Create the button widget (icon in wibar)
-    -- Nerd Font icons can extend beyond their bounding box, so we scale the font slightly smaller
-    local iconFont = args.icon_font or beautiful.topBar_button_font or beautiful.font
-    local iconFontSize = tonumber(iconFont:match("(%d+)$")) or 12
-    -- Make icon font slightly smaller to prevent clipping (Nerd Font glyphs extend beyond bounds)
-    local iconFontScaled = iconFont:gsub("(%d+)$", tostring(math.floor(iconFontSize * 0.90)))
 
     local button = wibox.widget {
         {
@@ -275,10 +217,10 @@ function match_window.create(args)
                 widget = wibox.widget.textbox,
                 align = "center",
                 valign = "center",
-                font = iconFontScaled,  -- Scaled down to prevent clipping
+                font = iconFontScaled,
             },
             widget = wibox.container.margin,
-            margins = colors.icon_padding or 2,
+            margins = paddings.icon,
         },
         widget = wibox.container.background,
         bg = colors.bg_button,
@@ -291,10 +233,10 @@ function match_window.create(args)
     local buttonContainer = wibox.widget {
         button,
         widget = wibox.container.margin,
-        top = colors.button_margin_top,
-        bottom = colors.button_margin_bottom,
-        left = colors.button_margin_left,
-        right = colors.button_margin_right,
+        top = paddings.button_top,
+        bottom = paddings.button_bottom,
+        left = paddings.button_left,
+        right = paddings.button_right,
     }
 
     -- Center the button vertically in the wibar
@@ -310,26 +252,26 @@ function match_window.create(args)
         id = "content",
         text = "Click a tab to load data...",
         widget = wibox.widget.textbox,
-        font = args.font or beautiful.font,
+        font = contentFont,
         fg = colors.fg_text,
-        forced_width = 700,
+        forced_width = sizes.content_width,
     }
 
     -- Create tab buttons
     local scoresTab = wibox.widget {
         {
             id = "label",
-            text = "\u{f080}  Results",
+            text = cfg.icons.results .. "  Results",
             widget = wibox.widget.textbox,
             align = "center",
             valign = "center",
-            font = font
+            font = contentFont
         },
         bg = colors.tab_active,
         fg = colors.fg_text,
         widget = wibox.container.background,
-        forced_width = 150,
-        forced_height = 30,
+        forced_width = sizes.tab_width,
+        forced_height = sizes.tab_height,
         shape = gears.shape.rounded_rect,
         shape_border_width = 0,
     }
@@ -337,17 +279,17 @@ function match_window.create(args)
     local standingsTab = wibox.widget {
         {
             id = "label",
-            text = "\u{f091}  Standings",
+            text = cfg.icons.standings .. "  Standings",
             widget = wibox.widget.textbox,
             align = "center",
             valign = "center",
-            font = font
+            font = contentFont
         },
         bg = colors.tab_inactive,
         fg = colors.fg_text,
         widget = wibox.container.background,
-        forced_width = 150,
-        forced_height = 30,
+        forced_width = sizes.tab_width,
+        forced_height = sizes.tab_height,
         shape = gears.shape.rounded_rect,
         shape_border_width = 0,
     }
@@ -358,7 +300,7 @@ function match_window.create(args)
         spacing = 2,
     }
 
-    local competitions = args.competitions or match_window.COMPETITIONS
+    local competitions = args.competitions or cfg.COMPETITIONS
 
     -- Forward declaration for popup (needed for close button)
     local popup = nil
@@ -367,7 +309,7 @@ function match_window.create(args)
     local updateContent = nil
 
     -- Cache file path
-    local cacheFile = config.cache_file or default_config.cache_file
+    local cacheFile = cfg.paths.cache_file
 
     -- Path to fetch script (same directory as this file)
     local fetchScript = debug.getinfo(1, "S").source:match("^@(.+/)match_window%.lua$") .. "fetch_data.lua"
@@ -401,8 +343,8 @@ function match_window.create(args)
             fetchScript:match("^(.+)/[^/]+$") or ".",
             fetchScript,
             cacheFile,
-            config.team_id,
-            config.match_count,
+            cfg.defaults.team_id,
+            cfg.defaults.match_count,
             currentCompetition.code
         )
 
@@ -472,8 +414,8 @@ function match_window.create(args)
         visible = false,
         ontop = true,
         placement = awful.placement.centered,
-        minimum_width = 750,
-        maximum_width = 750,
+        minimum_width = sizes.window_min_width,
+        maximum_width = sizes.window_max_width,
         widget = wibox.widget {
             layout = wibox.layout.fixed.vertical,
             -- Header with close button
@@ -481,20 +423,20 @@ function match_window.create(args)
                 {
                     {
                         {
-                            text = footballIcon .. "  Football",
+                            text = cfg.icons.football .. "  Football",
                             widget = wibox.widget.textbox,
                             font = iconFontScaled
                         },
                         nil,
                         {
                             id = "closeBtn",
-                            text = "✕",
+                            text = cfg.icons.close,
                             widget = wibox.widget.textbox,
-                            font = font,
+                            font = contentFont,
                             align = "center",
                             valign = "center",
-                            forced_width = 24,
-                            forced_height = 24,
+                            forced_width = sizes.close_button_size,
+                            forced_height = sizes.close_button_size,
                             buttons = gears.table.join(
                                 awful.button({}, 1, function()
                                     popup.visible = false
@@ -504,7 +446,7 @@ function match_window.create(args)
                         layout = wibox.layout.align.horizontal,
                     },
                     widget = wibox.container.margin,
-                    margins = 8,
+                    margins = paddings.header,
                 },
                 bg = colors.bg_header,
                 fg = colors.fg_text,
@@ -520,7 +462,7 @@ function match_window.create(args)
                         spacing = 4,
                     },
                     widget = wibox.container.margin,
-                    margins = 4,
+                    margins = paddings.tab_bar,
                 },
                 widget = wibox.container.background,
                 bg = colors.bg_tab_bar,
@@ -534,7 +476,7 @@ function match_window.create(args)
                     bg = colors.bg_window,
                 },
                 widget = wibox.container.margin,
-                margins = { left = 8, right = 8, bottom = 4, top = 4 },
+                margins = paddings.competition,
                 visible = false,
             },
             -- Content area
@@ -545,7 +487,7 @@ function match_window.create(args)
                     bg = colors.bg_window,
                 },
                 widget = wibox.container.margin,
-                margins = 8,
+                margins = paddings.content,
             },
         }
     }
@@ -558,13 +500,13 @@ function match_window.create(args)
                 widget = wibox.widget.textbox,
                 align = "center",
                 valign = "center",
-                font = font
+                font = contentFont
             },
             bg = comp.code == currentCompetition.code and colors.tab_active or colors.tab_inactive,
             fg = colors.fg_text,
             widget = wibox.container.background,
-            forced_width = 80,
-            forced_height = 24,
+            forced_width = sizes.competition_btn_width,
+            forced_height = sizes.competition_btn_height,
             buttons = gears.table.join(
                 awful.button({}, 1, function()
                     currentCompetition = comp
@@ -651,9 +593,9 @@ function match_window.create(args)
 
     -- Auto-refresh timer
     local refresh_timer = nil
-    if config.auto_refresh then
+    if cfg.defaults.auto_refresh then
         refresh_timer = gears.timer {
-            timeout = config.refresh_interval,
+            timeout = cfg.defaults.refresh_interval,
             autostart = true,
             call_now = false,
             callback = function()
@@ -682,7 +624,7 @@ function match_window.create(args)
         refresh = updateContent,
         timer = refresh_timer,
         setTeamId = function(teamId)
-            config.team_id = teamId
+            cfg.defaults.team_id = teamId
             cache.matches.timestamp = 0  -- Invalidate cache
             if popup.visible and currentTab == "scores" then
                 updateContent()
