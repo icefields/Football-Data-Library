@@ -309,6 +309,7 @@ function match_window.create(args)
     -- Font references (from getFonts result)
     local contentFont = fonts.content
     local titleFont = fonts.title
+    local tabFont = fonts.tab
     local iconFontRaw = fonts.icon
     local iconFontSize = tonumber(iconFontRaw:match("(%d+)$")) or 12
     local iconFontScaled = iconFontRaw:gsub("(%d+)$", tostring(math.floor(iconFontSize * fonts.icon_scale)))
@@ -385,7 +386,7 @@ function match_window.create(args)
             widget = wibox.widget.textbox,
             align = "center",
             valign = "center",
-            font = contentFont
+            font = tabFont
         },
         bg = colors.tab_active,
         fg = colors.fg_tab,
@@ -403,7 +404,7 @@ function match_window.create(args)
             widget = wibox.widget.textbox,
             align = "center",
             valign = "center",
-            font = contentFont
+            font = tabFont
         },
         bg = colors.tab_inactive,
         fg = colors.fg_tab,
@@ -421,7 +422,7 @@ function match_window.create(args)
             widget = wibox.widget.textbox,
             align = "center",
             valign = "center",
-            font = contentFont
+            font = tabFont
         },
         bg = colors.tab_inactive,
         fg = colors.fg_tab,

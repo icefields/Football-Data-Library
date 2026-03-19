@@ -41,6 +41,7 @@ local colors = {
     -- ═══════════════════════════════════════════════════════════════════════
     fg_content = "#ffffff",       -- Content text (match results, standings data)
     fg_header = "#ffffff",        -- Header text ("Football" title, X button)
+    fg_tab = "#ffffff",           -- Tab button text (Results, Standings, Champions)
 
     -- ═══════════════════════════════════════════════════════════════════════
     -- TOP BAR (header with "Football" title and X close button)
@@ -57,13 +58,12 @@ local colors = {
     -- ═══════════════════════════════════════════════════════════════════════
     -- WIBAR BUTTON (the football icon in your status bar)
     -- ═══════════════════════════════════════════════════════════════════════
-    icon_color = "#ffffff",       -- Default icon color (overridden by beautiful.topBar_fg)
+    icon_color = "#ffffff",       -- Icon color (overridden by beautiful.topBar_fg if you want)
     icon_hover = "#3a3a5a",       -- Icon background color on mouse hover
 
     -- ═══════════════════════════════════════════════════════════════════════
     -- TAB BAR (Results / Standings / Champions tabs)
     -- ═══════════════════════════════════════════════════════════════════════
-    fg_tab = "#ffffff",           -- Text color for tab labels
     tab_active = "#3a3a5a",       -- Background color of the currently selected tab
     tab_inactive = "#1a1a2e",      -- Background color of non-selected tabs
     tab_hover = "#5a5a8a",        -- Tab background color on mouse hover
@@ -73,7 +73,7 @@ local colors = {
     -- ═══════════════════════════════════════════════════════════════════════
     bg_tab_bar = "#0d0d1a",       -- Background behind the tab buttons
     bg_window = "#0d0d1a",        -- Background of the content area (matches/standings)
-    bg_popup = "#0d0d1a",         -- Main popup background (overridden by beautiful.tooltip_bg_color)
+    bg_popup = "#0d0d1a",         -- Main popup background
     bg_button = "#00000000",      -- Wibar button background (transparent)
 }
 
@@ -90,7 +90,9 @@ local fonts = {
     content = nil,        -- Main content font (match results, standings text)
                           -- Falls back to beautiful.font
     title = nil,          -- Window title font ("Football" in header)
-                          -- Falls back to beautiful.mainFont or content font
+                          -- Falls back to content font
+    tab = nil,            -- Tab button font (Results, Standings, Champions)
+                          -- Falls back to content font
 
     -- ═══════════════════════════════════════════════════════════════════════
     -- PAGINATION FONTS (bottom bar)
@@ -286,20 +288,16 @@ config.defaults = {
 }
 
 function config.getColors(beautiful)
-    -- Return a copy of colors with beautiful theme overrides
+    -- Return a copy of colors
+    -- User config values take priority over beautiful theme
+    -- Beautiful theme is only used as fallback when config value is nil/default
     local c = {}
     for k, v in pairs(colors) do
         c[k] = v
     end
-    if beautiful ~= nil then
-        c.icon_color = beautiful.topBar_fg or c.icon_color
-        c.bg_popup = beautiful.tooltip_bg_color or c.bg_popup
-        c.fg_content = beautiful.tooltip_fg_color or c.fg_content
-        c.fg_header = beautiful.tooltip_fg_color or c.fg_header
-        c.fg_tab = beautiful.tooltip_fg_color or c.fg_tab
-        c.fg_pagination_button = beautiful.tooltip_fg_color or c.fg_pagination_button
-        c.fg_pagination_label = beautiful.tooltip_fg_color or c.fg_pagination_label
-    end
+    -- Note: We don't override with beautiful here because user config values
+    -- should take priority. If user wants beautiful theme colors, they should
+    -- set them to nil in their config or we can add a separate function.
     return c
 end
 
@@ -307,8 +305,10 @@ function config.getFonts(beautiful)
     local f = {}
     -- Content font: fallback chain
     f.content = fonts.content or beautiful.font
-    -- Title font: fallback chain
-    f.title = fonts.title or beautiful.mainFont or f.content
+    -- Title font: fallback to content
+    f.title = fonts.title or f.content
+    -- Tab font: fallback to content
+    f.tab = fonts.tab or f.content
     -- Pagination fonts: fallback to content
     f.pagination_button = fonts.pagination_button or f.content
     f.pagination_label = fonts.pagination_label or f.content
