@@ -59,16 +59,71 @@ local default_config = {
     auto_refresh = true,
     refresh_interval = 300,  -- 5 minutes
     cache_timeout = 300,      -- Cache data for 5 minutes
+    cache_file = os.getenv("HOME") .. "/.cache/football_data.json",  -- Persistent cache
 }
 
 -- Singleton for football app
 local footballApp = nil
 
--- Cache storage
+-- In-memory cache
 local cache = {
     matches = { data = nil, timestamp = 0 },
     standings = { data = nil, timestamp = 0, competition = nil },
 }
+
+-- Load cache from file
+local function loadCacheFromFile(cacheFile)
+    local file = io.open(cacheFile, "r")
+    if not file then
+        return { matches = { data = nil, timestamp = 0 }, standings = { data = nil, timestamp = 0, competition = nil } }
+    end
+    
+    local content = file:read("*all")
+    file:close()
+    
+    local success, data = pcall(function()
+        return require("cjson").decode(content)
+    end)
+    
+    if success and data then
+        return {
+            matches = data.matches or { data = nil, timestamp = 0 },
+            standings = data.standings or { data = nil, timestamp = 0, competition = nil },
+        }
+    end
+    
+    return { matches = { data = nil, timestamp = 0 }, standings = { data = nil, timestamp = 0, competition = nil } }
+end
+
+-- Save cache to file
+local function saveCacheToFile(cacheFile, cacheData)
+    local file = io.open(cacheFile, "w")
+    if not file then
+        return false
+    end
+    
+    -- Create directory if it doesn't exist
+    local cacheDir = cacheFile:match("^(.*)/[^/]+$")
+    if cacheDir then
+        os.execute("mkdir -p " .. cacheDir)
+    end
+    
+    local success, content = pcall(function()
+        return require("cjson").encode({
+            matches = cacheData.matches,
+            standings = cacheData.standings,
+        })
+    end)
+    
+    if success and content then
+        file:write(content)
+        file:close()
+        return true
+    end
+    
+    file:close()
+    return false
+end
 
 -- Get or initialize football app
 local function getFootballApp()
@@ -84,8 +139,20 @@ local function isCacheValid(cacheEntry, timeout)
     return cacheEntry.data and (os.time() - cacheEntry.timestamp) < timeout
 end
 
+-- Initialize cache from file on first use
+local function ensureCacheLoaded(cacheFile)
+    if cache.matches.timestamp == 0 and cache.standings.timestamp == 0 then
+        local fileCache = loadCacheFromFile(cacheFile)
+        if fileCache then
+            cache = fileCache
+        end
+    end
+end
+
 -- Fetch team matches (with caching)
-local function getTeamMatches(config)
+local function getTeamMatches(config, cacheFile)
+    ensureCacheLoaded(cacheFile)
+    
     if isCacheValid(cache.matches) then
         return cache.matches.data
     end
@@ -98,6 +165,7 @@ local function getTeamMatches(config)
     if success and result then
         cache.matches.data = result
         cache.matches.timestamp = os.time()
+        saveCacheToFile(cacheFile, cache)
         return result
     else
         return nil, result
@@ -105,7 +173,9 @@ local function getTeamMatches(config)
 end
 
 -- Fetch standings (with caching)
-local function getStandings(competitionCode)
+local function getStandings(competitionCode, cacheFile)
+    ensureCacheLoaded(cacheFile)
+    
     if isCacheValid(cache.standings) and cache.standings.competition == competitionCode then
         return cache.standings.data
     end
@@ -119,6 +189,7 @@ local function getStandings(competitionCode)
         cache.standings.data = result
         cache.standings.timestamp = os.time()
         cache.standings.competition = competitionCode
+        saveCacheToFile(cacheFile, cache)
         return result
     else
         return nil, result
@@ -253,29 +324,46 @@ function match_window.create(args)
     -- Forward declaration for updateContent (needed for setActiveTab)
     local updateContent = nil
     
-    -- Update content based on current tab
+    -- Cache file path
+    local cacheFile = config.cache_file or default_config.cache_file
+    
+    -- Update content based on current tab (async version to prevent UI blocking)
     updateContent = function()
-        contentText.text = "Loading..."
+        -- Load cache first to show immediately if available
+        ensureCacheLoaded(cacheFile)
         
-        if currentTab == "scores" then
-            local matches, err = getTeamMatches(config)
-            if matches and #matches > 0 then
-                contentText.text = View.getMatchesString(matches, true)
-            elseif err then
-                contentText.text = "Error: " .. tostring(err)
-            else
-                contentText.text = "No matches found"
-            end
+        -- Show cached data immediately if available
+        if currentTab == "scores" and cache.matches.data then
+            contentText.text = View.getMatchesString(cache.matches.data, true)
+        elseif currentTab == "standings" and cache.standings.data then
+            contentText.text = View.getStandingsString(cache.standings.data, currentCompetition.name)
         else
-            local standings, err = getStandings(currentCompetition.code)
-            if standings and #standings > 0 then
-                contentText.text = View.getStandingsString(standings, currentCompetition.name)
-            elseif err then
-                contentText.text = "Error: " .. tostring(err)
-            else
-                contentText.text = "No standings found"
-            end
+            contentText.text = "Loading..."
         end
+        
+        -- Use a timer to defer the fetch, allowing the UI to update first
+        gears.timer.start_new(0.01, function()
+            if currentTab == "scores" then
+                local matches, err = getTeamMatches(config, cacheFile)
+                if matches and #matches > 0 then
+                    contentText.text = View.getMatchesString(matches, true)
+                elseif err then
+                    contentText.text = "Error: " .. tostring(err)
+                else
+                    contentText.text = "No matches found"
+                end
+            else
+                local standings, err = getStandings(currentCompetition.code, cacheFile)
+                if standings and #standings > 0 then
+                    contentText.text = View.getStandingsString(standings, currentCompetition.name)
+                elseif err then
+                    contentText.text = "Error: " .. tostring(err)
+                else
+                    contentText.text = "No standings found"
+                end
+            end
+            return false  -- Don't repeat the timer
+        end)
     end
     
     -- Tab switching logic
