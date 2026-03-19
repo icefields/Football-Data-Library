@@ -14,6 +14,8 @@ config.paths = {
 --------------------------------------------------------------------------------
 -- COLORS
 --------------------------------------------------------------------------------
+-- Default fallback colors. These are used when beautiful theme colors are not available.
+-- match_window.lua will override these with beautiful.* if available.
 config.colors = {
     -- Text colors (foreground)
     fg_text = "#ffffff",
@@ -32,7 +34,7 @@ config.colors = {
     bg_header = "#3a3a5a",
     bg_tab_bar = "#0d0d1a",
     bg_window = "#0d0d1a",
-    bg_popup = "#1a1a2e",  -- Main popup/container background
+    bg_popup = "#1a1a2e",
     bg_button = "#00000000",
 }
 
