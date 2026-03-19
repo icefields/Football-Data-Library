@@ -607,15 +607,19 @@ function match_window.create(args)
                 margins = paddings.competition,
                 visible = false,
             },
-            -- Content area
+            -- Content area (scrollable)
             {
                 {
-                    contentText,
-                    widget = wibox.container.background,
-                    bg = colors.bg_window,
+                    {
+                        contentText,
+                        widget = wibox.container.background,
+                        bg = colors.bg_window,
+                    },
+                    widget = wibox.container.margin,
+                    margins = paddings.content,
                 },
-                widget = wibox.container.margin,
-                margins = paddings.content,
+                widget = wibox.container.scroll.vertical,
+                step = sizes.scroll_step,
             },
         }
     }

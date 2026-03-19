@@ -58,10 +58,13 @@ config.sizes = {
     -- Window dimensions
     window_min_width = 750,
     window_max_width = 750,
-    window_max_height = 700,  -- Max height to fit 1080p screens
+    window_max_height = 900,  -- Max height to fit 1080p screens
     
     -- Content width
     content_width = 700,
+    
+    -- Scroll settings
+    scroll_step = 30,  -- Pixels per scroll step
 
     -- Button (wibar icon)
     button_size = 24,  -- Fallback if beautiful.topBar_buttonSize not set
