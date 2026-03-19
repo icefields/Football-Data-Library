@@ -674,85 +674,91 @@ function match_window.create(args)
         widget = wibox.widget {
             {
                 id = "popupLayout",
-                layout = wibox.layout.fixed.vertical,
-                -- Header with close button
+                layout = wibox.layout.align.vertical,
+                -- Top section (header, tabs, content)
                 {
+                    id = "contentArea",
+                    layout = wibox.layout.fixed.vertical,
+                    -- Header with close button
                     {
                         {
                             {
-                                text = cfg.icons.football .. "  " .. cfg.strings.title,
-                                widget = wibox.widget.textbox,
-                                font = titleFont
+                                {
+                                    text = cfg.icons.football .. "  " .. cfg.strings.title,
+                                    widget = wibox.widget.textbox,
+                                    font = titleFont
+                                },
+                                nil,
+                                {
+                                    id = "closeBtn",
+                                    text = cfg.icons.close,
+                                    widget = wibox.widget.textbox,
+                                    font = contentFont,
+                                    align = "center",
+                                    valign = "center",
+                                    forced_width = sizes.close_button_size,
+                                    forced_height = sizes.close_button_size,
+                                    buttons = gears.table.join(
+                                        awful.button({}, 1, function()
+                                            popup.visible = false
+                                        end)
+                                    )
+                                },
+                                layout = wibox.layout.align.horizontal,
                             },
-                            nil,
-                            {
-                                id = "closeBtn",
-                                text = cfg.icons.close,
-                                widget = wibox.widget.textbox,
-                                font = contentFont,
-                                align = "center",
-                                valign = "center",
-                                forced_width = sizes.close_button_size,
-                                forced_height = sizes.close_button_size,
-                                buttons = gears.table.join(
-                                    awful.button({}, 1, function()
-                                        popup.visible = false
-                                    end)
-                                )
-                            },
-                            layout = wibox.layout.align.horizontal,
+                            widget = wibox.container.margin,
+                            margins = paddings.header,
                         },
-                        widget = wibox.container.margin,
-                        margins = paddings.header,
-                    },
-                    bg = colors.bg_header,
-                    fg = colors.fg_text,
-                    widget = wibox.container.background,
-                },
-                -- Tab bar
-                {
-                    {
-                        {
-                            scoresTab,
-                            standingsTab,
-                            championsTab,
-                            layout = wibox.layout.fixed.horizontal,
-                            spacing = 4,
-                        },
-                        widget = wibox.container.margin,
-                        margins = paddings.tab_bar,
-                    },
-                    widget = wibox.container.background,
-                    bg = colors.bg_tab_bar,
-                },
-                -- Competition selector (for standings tab)
-                {
-                    id = "competitionContainer",
-                    {
-                        competitionButtons,
+                        bg = colors.bg_header,
+                        fg = colors.fg_text,
                         widget = wibox.container.background,
-                        bg = colors.bg_window,
                     },
-                    widget = wibox.container.margin,
-                    margins = paddings.competition,
-                    visible = false,
-                },
-                -- Content area (expandable, will fill remaining space)
-                {
+                    -- Tab bar
                     {
                         {
-                            contentText,
+                            {
+                                scoresTab,
+                                standingsTab,
+                                championsTab,
+                                layout = wibox.layout.fixed.horizontal,
+                                spacing = 4,
+                            },
+                            widget = wibox.container.margin,
+                            margins = paddings.tab_bar,
+                        },
+                        widget = wibox.container.background,
+                        bg = colors.bg_tab_bar,
+                    },
+                    -- Competition selector (for standings tab)
+                    {
+                        id = "competitionContainer",
+                        {
+                            competitionButtons,
                             widget = wibox.container.background,
                             bg = colors.bg_window,
                         },
                         widget = wibox.container.margin,
-                        margins = paddings.content,
+                        margins = paddings.competition,
+                        visible = false,
                     },
-                    widget = wibox.container.constraint,
-                    strategy = "max",
-                    width = sizes.content_width,
-                    height = sizes.content_max_height,
+                    -- Content area (expandable, will fill remaining space)
+                    {
+                        {
+                            {
+                                contentText,
+                                widget = wibox.container.background,
+                                bg = colors.bg_window,
+                            },
+                            widget = wibox.container.margin,
+                            margins = paddings.content,
+                        },
+                        widget = wibox.container.constraint,
+                        strategy = "max",
+                        width = sizes.content_width,
+                        height = sizes.content_max_height,
+                    },
                 },
+                nil, -- Middle expands to push pagination to bottom
                 -- Pagination buttons (anchored to bottom)
                 {
                     id = "paginationContainer",
