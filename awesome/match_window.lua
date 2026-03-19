@@ -249,10 +249,17 @@ function match_window.create(args)
     
     local font = args.font or beautiful.font
     local currentCompetition = config.competitions and config.competitions[1] or match_window.COMPETITIONS[1]
-    local iconFont = args.icon_font or "Symbols Nerd Font Mono 14"
+    local iconFont = args.icon_font or beautiful.topBar_button_font or beautiful.font
     
     -- Current tab: "scores" or "standings"
     local currentTab = "scores"
+    
+    -- Popup colors from beautiful theme
+    local popupBg = beautiful.tooltip_bg_color or beautiful.bg_normal or "#1a1a2e"
+    local popupFg = beautiful.tooltip_fg_color or beautiful.fg_normal or "#ffffff"
+    
+    -- Button size from beautiful theme
+    local buttonSize = beautiful.topBar_buttonSize or beautiful.wibar_height or 24
     
     -- Create the button widget (icon in wibar)
     local button = wibox.widget {
@@ -268,7 +275,7 @@ function match_window.create(args)
         bg = colors.bg_button,
         fg = colors.icon_color,
         shape = gears.shape.rounded_bar,
-        forced_height = beautiful.wibar_height or 24
+        forced_height = buttonSize
     }
     
     -- Wrap button in margin container for spacing from bar edges
@@ -287,7 +294,7 @@ function match_window.create(args)
         text = "Click a tab to load data...",
         widget = wibox.widget.textbox,
         font = args.font or beautiful.font,
-        fg = colors.text,
+        fg = popupFg,
         forced_width = 650,
     }
     
@@ -302,7 +309,7 @@ function match_window.create(args)
             font = font
         },
         bg = colors.tab_active,
-        fg = colors.text,
+        fg = popupFg,
         widget = wibox.container.background,
         forced_width = 150,
         forced_height = 30,
@@ -320,7 +327,7 @@ function match_window.create(args)
             font = font
         },
         bg = colors.tab_inactive,
-        fg = colors.text,
+        fg = popupFg,
         widget = wibox.container.background,
         forced_width = 150,
         forced_height = 30,
@@ -482,7 +489,7 @@ function match_window.create(args)
                     margins = 8,
                 },
                 bg = colors.bg_header,
-                fg = colors.text,
+                fg = popupFg,
                 widget = wibox.container.background,
             },
             -- Tab bar
@@ -506,7 +513,7 @@ function match_window.create(args)
                 {
                     competitionButtons,
                     widget = wibox.container.background,
-                    bg = colors.bg_content,
+                    bg = popupBg,
                 },
                 widget = wibox.container.margin,
                 margins = { left = 8, right = 8, bottom = 4, top = 4 },
@@ -517,7 +524,7 @@ function match_window.create(args)
                 {
                     contentText,
                     widget = wibox.container.background,
-                    bg = colors.bg_content,
+                    bg = popupBg,
                     forced_height = 400,
                 },
                 widget = wibox.container.margin,
@@ -537,7 +544,7 @@ function match_window.create(args)
                 font = font
             },
             bg = comp.code == currentCompetition.code and colors.tab_active or colors.tab_inactive,
-            fg = colors.text,
+            fg = popupFg,
             widget = wibox.container.background,
             forced_width = 80,
             forced_height = 24,
