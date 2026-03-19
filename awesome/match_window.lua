@@ -281,6 +281,12 @@ end
 function match_window.create(args)
     args = args or {}
 
+    -- Required modules
+    local awful = args.awful
+    local beautiful = args.beautiful
+    local wibox = args.wibox
+    local gears = args.gears
+
     -- Use config defaults (can override via args.config)
     local cfg = args.config or default_config
 
@@ -297,13 +303,7 @@ function match_window.create(args)
     for k, v in pairs(default_config) do
         config[k] = args[k] ~= nil and args[k] or v
     end
-
-    -- Required modules
-    local awful = args.awful
-    local beautiful = args.beautiful
-    local wibox = args.wibox
-    local gears = args.gears
-
+    
     if not awful or not beautiful or not wibox or not gears then
         error("match_window requires 'awful', 'beautiful', 'wibox', and 'gears' modules")
     end
