@@ -58,8 +58,8 @@ config.sizes = {
     -- Window dimensions
     window_min_width = 750,
     window_max_width = 750,
-    window_min_height = 700,  -- Minimum window height
-    window_max_height = 900,  -- Max height to fit 1080p screens
+    window_min_height = 720,  -- Minimum window height
+    window_max_height = 950,  -- Max height to fit 1080p screens
 
     -- Content width
     content_width = 700,
@@ -126,7 +126,7 @@ config.strings = {
     -- Tab labels (will be combined with icons)
     results = "Results",
     standings = "Standings",
-    champions = "Champions League",
+    champions = "Champions",
 
     -- Content placeholders
     loading = "Loading...",
