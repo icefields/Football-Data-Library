@@ -794,7 +794,8 @@ function match_window.create(args)
     }
 
     -- Get pagination buttons
-    local popupLayout = popup.widget:get_children_by_id("popupLayout")[1]
+    -- popup.widget is the background container, its first child is the popupLayout
+    local popupLayout = popup.widget.children and popup.widget.children[1]
     if popupLayout then
         prevPageBtn = popupLayout:get_children_by_id("prevPageBtn")[1]
         nextPageBtn = popupLayout:get_children_by_id("nextPageBtn")[1]
