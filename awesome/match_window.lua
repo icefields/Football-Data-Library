@@ -545,8 +545,14 @@ function match_window.create(args)
                 contentText.text = formattedResults .. pageIndicator
                 
                 -- Update pagination buttons visibility
+                if paginationContainer then paginationContainer.visible = true end
                 if prevPageBtn then prevPageBtn.visible = currentPage > 1 end
-                if nextPageBtn then nextPageBtn.visible = currentPage < totalPages end
+                if nextPageBtn then 
+                    nextPageBtn.visible = currentPage < totalPages 
+                end
+                if pageIndicatorWidget then
+                    pageIndicatorWidget.text = string.format("Page %d/%d", currentPage, totalPages)
+                end
             end
         end)
     end
@@ -677,30 +683,35 @@ function match_window.create(args)
             -- Pagination buttons (for Champions League)
             {
                 id = "paginationContainer",
+                layout = wibox.layout.flex.horizontal,
+                spacing = 20,
                 {
-                    {
-                        id = "prevPageBtn",
-                        text = "◀ Prev",
-                        widget = wibox.widget.textbox,
-                        align = "center",
-                        valign = "center",
-                        font = contentFont,
-                        visible = false,
-                    },
-                    nil,
-                    {
-                        id = "nextPageBtn",
-                        text = "Next ▶",
-                        widget = wibox.widget.textbox,
-                        align = "center",
-                        valign = "center",
-                        font = contentFont,
-                        visible = false,
-                    },
-                    layout = wibox.layout.align.horizontal,
+                    id = "prevPageBtn",
+                    text = "◀ Prev",
+                    widget = wibox.widget.textbox,
+                    align = "center",
+                    valign = "center",
+                    font = contentFont,
+                    fg = colors.fg_text,
                 },
-                widget = wibox.container.margin,
-                margins = { left = 8, right = 8, top = 4, bottom = 4 },
+                {
+                    id = "pageIndicator",
+                    text = "Page 1/1",
+                    widget = wibox.widget.textbox,
+                    align = "center",
+                    valign = "center",
+                    font = contentFont,
+                    fg = colors.fg_text_dim,
+                },
+                {
+                    id = "nextPageBtn",
+                    text = "Next ▶",
+                    widget = wibox.widget.textbox,
+                    align = "center",
+                    valign = "center",
+                    font = contentFont,
+                    fg = colors.fg_text,
+                },
                 visible = false,
             },
         }
@@ -709,6 +720,7 @@ function match_window.create(args)
     -- Get pagination buttons
     prevPageBtn = popup.widget:get_children_by_id("prevPageBtn")[1]
     nextPageBtn = popup.widget:get_children_by_id("nextPageBtn")[1]
+    local pageIndicator = popup.widget:get_children_by_id("pageIndicator")[1]
     local paginationContainer = popup.widget:get_children_by_id("paginationContainer")[1]
 
     -- Pagination button handlers
@@ -736,6 +748,9 @@ function match_window.create(args)
             end)
         ))
     end
+    
+    -- Store page indicator for updating
+    local pageIndicatorWidget = pageIndicator
 
     -- Populate competition buttons
     for _, comp in ipairs(competitions) do
