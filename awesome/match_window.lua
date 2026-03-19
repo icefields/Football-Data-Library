@@ -332,10 +332,13 @@ function match_window.create(args)
     }
 
     -- Enable mouse wheel scrolling
-    contentScroll:buttons(gears.table.join(
-        awful.button({}, 4, function() contentScroll:scroll_up() end),
-        awful.button({}, 5, function() contentScroll:scroll_down() end)
-    ))
+    contentScroll:connect_signal("button::press", function(_, _, _, button)
+        if button == 4 then
+            contentScroll:scroll_by(-sizes.scroll_step)
+        elseif button == 5 then
+            contentScroll:scroll_by(sizes.scroll_step)
+        end
+    end)
 
     -- Create tab buttons
     local scoresTab = wibox.widget {
