@@ -1,12 +1,27 @@
 -- awesome/awesome_config.lua
 -- Configuration constants for AwesomeWM football widget
 -- Override these by passing your own table to match_window.create({ config = ... })
+--
+-- USAGE EXAMPLE:
+--   local football_widget = match_window.create({
+--       awful = awful,
+--       wibox = wibox,
+--       gears = gears,
+--       beautiful = beautiful,
+--       config = {
+--           colors = { fg_text = "#ff0000" },  -- Override specific colors
+--           fonts = { content = "JetBrains Mono 12" },  -- Override fonts
+--           sizes = { window_min_width = 600 },  -- Override sizes
+--       },
+--   })
 
 local config = {}
 
 --------------------------------------------------------------------------------
 -- PATHS
 --------------------------------------------------------------------------------
+-- cache_file: JSON file for caching API responses (reduces API calls)
+-- Set to nil to disable caching (not recommended - hits API rate limits)
 config.paths = {
     cache_file = os.getenv("HOME") .. "/.cache/football_data.json",
 }
@@ -14,176 +29,260 @@ config.paths = {
 --------------------------------------------------------------------------------
 -- COLORS
 --------------------------------------------------------------------------------
--- Default fallback colors. These are used when beautiful theme colors are not available.
--- match_window.lua will override these with beautiful.* if available.
+-- All colors use hex format: "#RRGGBB" or "#RRGGBBAA" for transparency
+-- Default fallbacks are used when beautiful theme colors are not available
+-- match_window.lua overrides these with beautiful.* theme colors where applicable:
+--   - icon_color: overridden by beautiful.topBar_fg
+--   - bg_popup: overridden by beautiful.tooltip_bg_color
+--   - fg_text: overridden by beautiful.tooltip_fg_color
 config.colors = {
-    -- Text colors (foreground)
-    fg_text = "#ffffff",
-    fg_text_dim = "#aaaaaa",
+    -- ═══════════════════════════════════════════════════════════════════════
+    -- TEXT COLORS (foreground)
+    -- ═══════════════════════════════════════════════════════════════════════
+    fg_text = "#ffffff",          -- Main content text (match results, standings)
+    fg_text_dim = "#aaaaaa",      -- Dimmed/secondary text (unused, kept for fallback)
 
-    -- Icon colors
-    icon_color = "#ffffff",
-    icon_hover = "#3a3a5a",
+    -- ═══════════════════════════════════════════════════════════════════════
+    -- TOP BAR (header with "Football" title and X close button)
+    -- ═══════════════════════════════════════════════════════════════════════
+    fg_header = "#ffffff",        -- Text color for "Football" title and X button
+    bg_header = "#3a3a5a",        -- Background color of the header bar
 
-    -- Tab colors
-    tab_active = "#3a3a5a",
-    tab_inactive = "#1a1a2e",
-    tab_hover = "#5a5a8a",
+    -- ═══════════════════════════════════════════════════════════════════════
+    -- BOTTOM BAR (pagination: Prev/Next buttons and "Page X/Y" label)
+    -- ═══════════════════════════════════════════════════════════════════════
+    fg_pagination_button = "#ffffff",  -- Text color for "◀ Prev" and "Next ▶" buttons
+    fg_pagination_label = "#aaaaaa",    -- Text color for "Page 1/3" indicator
+    bg_pagination = "#0d0d1a",          -- Background color of pagination bar
 
-    -- Background colors
-    bg_header = "#3a3a5a",
-    bg_tab_bar = "#0d0d1a",
-    bg_window = "#0d0d1a",
-    bg_popup = "#0d0d1a",
-    bg_button = "#00000000",
+    -- ═══════════════════════════════════════════════════════════════════════
+    -- WIBAR BUTTON (the football icon in your status bar)
+    -- ═══════════════════════════════════════════════════════════════════════
+    icon_color = "#ffffff",       -- Default icon color (overridden by beautiful.topBar_fg)
+    icon_hover = "#3a3a5a",       -- Icon background color on mouse hover
+
+    -- ═══════════════════════════════════════════════════════════════════════
+    -- TAB BAR (Results / Standings / Champions tabs)
+    -- ═══════════════════════════════════════════════════════════════════════
+    tab_active = "#3a3a5a",       -- Background color of the currently selected tab
+    tab_inactive = "#1a1a2e",      -- Background color of non-selected tabs
+    tab_hover = "#5a5a8a",        -- Tab background color on mouse hover
+
+    -- ═══════════════════════════════════════════════════════════════════════
+    -- BACKGROUND COLORS
+    -- ═══════════════════════════════════════════════════════════════════════
+    bg_tab_bar = "#0d0d1a",       -- Background behind the tab buttons
+    bg_window = "#0d0d1a",        -- Background of the content area (matches/standings)
+    bg_popup = "#0d0d1a",         -- Main popup background (overridden by beautiful.tooltip_bg_color)
+    bg_button = "#00000000",      -- Wibar button background (transparent)
 }
 
 --------------------------------------------------------------------------------
 -- FONTS
 --------------------------------------------------------------------------------
--- Font handling: use beautiful.font as fallback
+-- Font handling: set to nil to use beautiful theme fonts as fallback
+-- Font strings should be in format: "FontName Size" (e.g., "JetBrains Mono 12")
 -- Icons use Nerd Font, scaled down 90% to prevent clipping
 config.fonts = {
-    -- Main content font (set to nil to use beautiful.font)
-    content = nil,
+    -- ═══════════════════════════════════════════════════════════════════════
+    -- CONTENT FONTS
+    -- ═══════════════════════════════════════════════════════════════════════
+    content = nil,        -- Main content font (match results, standings text)
+                          -- Falls back to beautiful.font
+    title = nil,          -- Window title font ("Football" in header)
+                          -- Falls back to beautiful.mainFont or content font
 
-    -- Icon font (set to nil to use beautiful.topBar_button_font or beautiful.font)
-    icon = nil,
+    -- ═══════════════════════════════════════════════════════════════════════
+    -- PAGINATION FONTS (bottom bar)
+    -- ═══════════════════════════════════════════════════════════════════════
+    pagination_button = nil,  -- Font for "◀ Prev" and "Next ▶" buttons
+                               -- Falls back to content font
+    pagination_label = nil,    -- Font for "Page 1/3" indicator
+                               -- Falls back to content font
 
-    -- Icon scale factor (Nerd Font glyphs extend beyond bounds)
-    icon_scale = 0.90,
+    -- ═══════════════════════════════════════════════════════════════════════
+    -- ICON FONT
+    -- ═══════════════════════════════════════════════════════════════════════
+    icon = nil,          -- Font for wibar football icon (󰒸)
+                          -- Falls back to beautiful.topBar_button_font or beautiful.font
+
+    -- ═══════════════════════════════════════════════════════════════════════
+    -- ICON SCALING
+    -- ═══════════════════════════════════════════════════════════════════════
+    icon_scale = 0.90,   -- Nerd Font glyphs extend beyond bounds, scale to prevent clipping
+                         -- 0.90 = 90% of original size
 }
 
 --------------------------------------------------------------------------------
 -- SIZES
 --------------------------------------------------------------------------------
+-- All sizes in pixels
 config.sizes = {
-    -- Window dimensions
-    window_min_width = 650,
-    window_max_width = 750,
-    window_min_height = 740,  -- Minimum window height
-    window_max_height = 950,  -- Max height to fit 1080p screens
+    -- ═══════════════════════════════════════════════════════════════════════
+    -- WINDOW DIMENSIONS
+    -- ═══════════════════════════════════════════════════════════════════════
+    window_min_width = 550,       -- Minimum popup width (can't shrink below this)
+    window_max_width = 750,       -- Maximum popup width (can't expand beyond this)
+    window_min_height = 740,      -- Minimum popup height
+    window_max_height = 950,      -- Maximum popup height (fits 1080p screens)
 
-    -- Content container
-    content_min_height = 300,  -- Minimum content area height
-    content_max_height = 700,  -- Maximum content area height
-    -- content_width removed - follows window width dynamically
+    -- ═══════════════════════════════════════════════════════════════════════
+    -- CONTENT AREA
+    -- ═══════════════════════════════════════════════════════════════════════
+    content_min_height = 300,     -- Minimum height for match/standings text area
+    content_max_height = 700,     -- Maximum height for match/standings text area
+    -- Note: content width is dynamic, follows window width
 
-    -- Button (wibar icon)
-    button_size = 24,  -- Fallback if beautiful.topBar_buttonSize not set
+    -- ═══════════════════════════════════════════════════════════════════════
+    -- WIBAR BUTTON (football icon in status bar)
+    -- ═══════════════════════════════════════════════════════════════════════
+    button_size = 24,            -- Icon size (fallback if beautiful.topBar_buttonSize not set)
 
-    -- Tab buttons
-    tab_width = 150,
-    tab_height = 30,
+    -- ═══════════════════════════════════════════════════════════════════════
+    -- TAB BUTTONS (Results / Standings / Champions)
+    -- ═══════════════════════════════════════════════════════════════════════
+    tab_width = 150,             -- Width of each tab button
+    tab_height = 30,             -- Height of each tab button
 
-    -- Close button
-    close_button_size = 24,
+    -- ═══════════════════════════════════════════════════════════════════════
+    -- CLOSE BUTTON (X in header)
+    -- ═══════════════════════════════════════════════════════════════════════
+    close_button_size = 24,      -- Size of the X close button in header
 
-    -- Competition buttons
-    competition_btn_width = 80,
-    competition_btn_height = 24,
+    -- ═══════════════════════════════════════════════════════════════════════
+    -- COMPETITION BUTTONS (Serie A / Premier League / etc. for Standings tab)
+    -- ═══════════════════════════════════════════════════════════════════════
+    competition_btn_width = 80,   -- Width of each competition button
+    competition_btn_height = 24,  -- Height of each competition button
 }
 
 --------------------------------------------------------------------------------
 -- PADDINGS & MARGINS
 --------------------------------------------------------------------------------
+-- All values in pixels
 config.paddings = {
-    -- Icon padding (prevents clipping of Nerd Font glyphs)
-    icon = 2,
+    -- ═══════════════════════════════════════════════════════════════════════
+    -- WIBAR BUTTON PADDING
+    -- ═══════════════════════════════════════════════════════════════════════
+    icon = 2,           -- Padding around football icon (prevents clipping)
 
-    -- Button margins (spacing from wibar edges)
-    button_top = 2,
-    button_bottom = 2,
-    button_left = 2,
-    button_right = 2,
+    -- ═══════════════════════════════════════════════════════════════════════
+    -- WIBAR BUTTON MARGINS (spacing from status bar edges)
+    -- ═══════════════════════════════════════════════════════════════════════
+    button_top = 2,     -- Margin above the button
+    button_bottom = 2,  -- Margin below the button
+    button_left = 2,    -- Margin left of the button
+    button_right = 2,   -- Margin right of the button
 
-    -- Header margin
-    header = 8,
+    -- ═══════════════════════════════════════════════════════════════════════
+    -- POPUP INTERNAL PADDING
+    -- ═══════════════════════════════════════════════════════════════════════
+    header = 8,         -- Padding inside the header bar (around title/close)
+    tab_bar = 4,        -- Padding inside the tab bar
+    content = 8,        -- Padding around the content area (matches/standings)
 
-    -- Tab bar margin
-    tab_bar = 4,
-
-    -- Content area margin
-    content = 8,
-
-    -- Competition selector margin
+    -- ═══════════════════════════════════════════════════════════════════════
+    -- COMPETITION SELECTOR PADDING (for Standings tab)
+    -- ═══════════════════════════════════════════════════════════════════════
     competition = { left = 8, right = 8, bottom = 4, top = 4 },
 }
 
 --------------------------------------------------------------------------------
 -- ICONS (Nerd Font)
 --------------------------------------------------------------------------------
+-- These use Nerd Font codepoints. Change to different icons if desired.
+-- Find icons at: https://www.nerdfonts.com/cheat-sheet
 config.icons = {
-    football = "󰒸",  -- Soccer/football icon
-    close = "✕",
-    results = "\u{f080}",   -- Chart/bar chart icon
-    standings = "\u{f091}", -- Trophy icon
-    champions = "\u{f19c}", -- University/trophy icon for Champions League
+    football = "󰒸",           -- Soccer/football icon (shown in wibar and header)
+    close = "✕",               -- Close button in header
+    results = "\u{f080}",      -- Bar chart icon for Results tab
+    standings = "\u{f091}",    -- Trophy icon for Standings tab
+    champions = "\u{f19c}",    -- University/trophy icon for Champions League tab
 }
 
 --------------------------------------------------------------------------------
 -- STRINGS (UI Text)
 --------------------------------------------------------------------------------
+-- Customizable text strings for the widget UI
 config.strings = {
-    -- Window title
+    -- ═══════════════════════════════════════════════════════════════════════
+    -- WINDOW TITLE (shown in header bar)
+    -- ═══════════════════════════════════════════════════════════════════════
     title = "Football",
 
-    -- Tab labels (will be combined with icons)
-    results = "Results",
-    standings = "Standings",
-    champions = "Champions",
+    -- ═══════════════════════════════════════════════════════════════════════
+    -- TAB LABELS (combined with icons)
+    -- ═══════════════════════════════════════════════════════════════════════
+    results = "Results",      -- Results tab label
+    standings = "Standings",  -- Standings tab label
+    champions = "Champions",  -- Champions League tab label
 
-    -- Content placeholders
-    loading = "Loading...",
-    click_to_load = "Click a tab to load data...",
+    -- ═══════════════════════════════════════════════════════════════════════
+    -- CONTENT PLACEHOLDERS (shown before data loads)
+    -- ═══════════════════════════════════════════════════════════════════════
+    loading = "Loading...",              -- Shown while fetching data
+    click_to_load = "Click a tab to load data...",  -- Initial placeholder
 }
 
 --------------------------------------------------------------------------------
 -- TEAMS
 --------------------------------------------------------------------------------
+-- Common team IDs for quick reference
+-- Use in config.defaults.team_id or pass to setTeamId()
 config.TEAMS = {
+    -- Italian Serie A
     INTER_MILAN = 108,
     AC_MILAN = 98,
     JUVENTUS = 109,
     NAPOLI = 113,
     ROMA = 100,
     LAZIO = 110,
+    -- English Premier League
     ARSENAL = 57,
     CHELSEA = 61,
     MAN_UNITED = 66,
     MAN_CITY = 65,
     LIVERPOOL = 64,
     TOTTENHAM = 73,
+    -- Spanish La Liga
     BARCELONA = 81,
     REAL_MADRID = 86,
     ATLETICO_MADRID = 78,
+    -- German Bundesliga
     BAYERN_MUNICH = 5,
     DORTMUND = 165,
+    -- French Ligue 1
     PSG = 85,
 }
 
 --------------------------------------------------------------------------------
 -- COMPETITIONS
 --------------------------------------------------------------------------------
+-- Competitions available in the Standings tab competition selector
+-- Add or remove entries to customize the dropdown
 config.COMPETITIONS = {
-    { name = "Serie A", code = "SA" },
-    { name = "Premier League", code = "PL" },
-    { name = "La Liga", code = "PD" },
-    { name = "Bundesliga", code = "BL1" },
-    { name = "Champions League", code = "CL" },
+    { name = "Serie A", code = "SA" },           -- Italy
+    { name = "Premier League", code = "PL" },     -- England
+    { name = "La Liga", code = "PD" },            -- Spain
+    { name = "Bundesliga", code = "BL1" },        -- Germany
+    { name = "Champions League", code = "CL" },    -- Europe
 }
 
 --------------------------------------------------------------------------------
 -- DEFAULTS (for internal use)
 --------------------------------------------------------------------------------
+-- These control API fetching behavior and pagination
 config.defaults = {
-    team_id = 108,  -- Inter Milan
-    match_count = 30,  -- Number of matches to fetch for team results
-    show_scheduled = false,
-    cache_timeout = 300,     -- Cache data for 5 minutes
-    -- Champions League code comes from COMPETITIONS (DRY)
-    champions_match_count = 50,    -- Total CL matches to fetch (finished only)
-    matches_per_page = 10,         -- Matches per page for pagination
+    team_id = 108,              -- Default team for Results tab (Inter Milan)
+                                -- Change this to your favorite team
+    match_count = 30,           -- Number of matches to fetch for Results tab
+    show_scheduled = false,     -- Show scheduled matches (true) or only played (false)
+    cache_timeout = 300,        -- Cache validity in seconds (5 minutes)
+                                -- Increase to reduce API calls, decrease for fresher data
+
+    -- Champions League settings
+    champions_match_count = 50, -- Total CL matches to fetch (finished only)
+    matches_per_page = 10,     -- Matches per page for Results and Champions tabs
 }
 
 -- Helper to get competition code by name (DRY)

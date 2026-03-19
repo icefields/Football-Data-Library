@@ -310,10 +310,12 @@ function match_window.create(args)
 
     -- Fonts (from config or beautiful theme)
     local contentFont = args.font or cfg.fonts.content or beautiful.font
-    local titleFont = beautiful.mainFont or contentFont
+    local titleFont = cfg.fonts.title or beautiful.mainFont or contentFont
     local iconFontRaw = args.icon_font or cfg.fonts.icon or beautiful.topBar_button_font or beautiful.font
     local iconFontSize = tonumber(iconFontRaw:match("(%d+)$")) or 12
     local iconFontScaled = iconFontRaw:gsub("(%d+)$", tostring(math.floor(iconFontSize * cfg.fonts.icon_scale)))
+    local paginationButtonFont = cfg.fonts.pagination_button or contentFont
+    local paginationLabelFont = cfg.fonts.pagination_label or contentFont
 
     -- Icons (from config)
     local footballIcon = args.icon or cfg.icons.football
@@ -692,7 +694,7 @@ function match_window.create(args)
                                     id = "closeBtn",
                                     text = cfg.icons.close,
                                     widget = wibox.widget.textbox,
-                                    font = contentFont,
+                                    font = titleFont,
                                     align = "center",
                                     valign = "center",
                                     forced_width = sizes.close_button_size,
@@ -709,7 +711,7 @@ function match_window.create(args)
                             margins = paddings.header,
                         },
                         bg = colors.bg_header,
-                        fg = colors.fg_text,
+                        fg = colors.fg_header,
                         widget = wibox.container.background,
                     },
                     -- Tab bar
@@ -770,8 +772,8 @@ function match_window.create(args)
                                 widget = wibox.widget.textbox,
                                 align = "center",
                                 valign = "center",
-                                font = contentFont,
-                                fg = colors.fg_text,
+                                font = paginationButtonFont,
+                                fg = colors.fg_pagination_button,
                             },
                             {
                                 id = "pageIndicator",
@@ -779,8 +781,8 @@ function match_window.create(args)
                                 widget = wibox.widget.textbox,
                                 align = "center",
                                 valign = "center",
-                                font = contentFont,
-                                fg = colors.fg_text_dim,
+                                font = paginationLabelFont,
+                                fg = colors.fg_pagination_label,
                             },
                             {
                                 id = "nextPageBtn",
@@ -788,8 +790,8 @@ function match_window.create(args)
                                 widget = wibox.widget.textbox,
                                 align = "center",
                                 valign = "center",
-                                font = contentFont,
-                                fg = colors.fg_text,
+                                font = paginationButtonFont,
+                                fg = colors.fg_pagination_button,
                             },
                             visible = false,
                         },
@@ -797,7 +799,7 @@ function match_window.create(args)
                         margins = 10,
                     },
                     widget = wibox.container.background,
-                    bg = colors.bg_tab_bar,
+                    bg = colors.bg_pagination,
                 },
             },
             widget = wibox.container.background,
