@@ -275,7 +275,8 @@ function match_window.create(args)
         bg = colors.bg_button,
         fg = colors.icon_color,
         shape = gears.shape.rounded_bar,
-        forced_height = buttonSize
+        forced_height = buttonSize,
+        forced_width = buttonSize,  -- Make it square
     }
     
     -- Wrap button in margin container for spacing from bar edges
