@@ -549,6 +549,7 @@ function match_window.create(args)
                 if nextPageBtn then nextPageBtn.visible = currentPage < totalPages end
             end
         end)
+    end
 
     -- Tab switching logic
     local function setActiveTab(tab)
