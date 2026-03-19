@@ -437,13 +437,9 @@ function match_window.create(args)
                 currentCompetition.code
             )
         end
-        
-        -- Debug: show command being run
-        contentText.text = "Running: " .. (currentTab or "unknown") .. "..."
 
         -- Run async
         awful.spawn.easy_async(cmd, function(stdout, stderr, exitreason, exitcode)
-            
             -- Debug: show command and exit code
             local debug_info = "Cmd: " .. (currentTab or "unknown") .. " exit=" .. tostring(exitcode)
             
@@ -546,6 +542,7 @@ function match_window.create(args)
         placement = awful.placement.centered,
         minimum_width = sizes.window_min_width,
         maximum_width = sizes.window_max_width,
+        maximum_height = sizes.window_max_height,
         widget = wibox.widget {
             layout = wibox.layout.fixed.vertical,
             -- Header with close button
