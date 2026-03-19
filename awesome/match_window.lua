@@ -181,7 +181,13 @@ local function getChampionsLeague(cacheFile)
 
     local success, result = pcall(function()
         local app = getFootballApp()
-        return app.service:getLatestScores("CL", true)
+        local allMatches = app.service:getLatestScores("CL", false)
+        -- Limit to configured count
+        local limited = {}
+        for i = 1, math.min(default_config.defaults.champions_match_count, #allMatches) do
+            table.insert(limited, allMatches[i])
+        end
+        return limited
     end)
 
     if success and result then
@@ -424,7 +430,7 @@ function match_window.create(args)
             if exitcode ~= 0 then
                 -- Only show error if we don't have cached data
                 if not cache.matches.data and not cache.standings.data and not cache.champions.data then
-                    contentText.text = "Error: " .. (stderr or "fetch failed")
+                    contentText.text = "Error: " .. (stderr or "fetch failed") .. " (code: " .. tostring(exitcode) .. ")"
                 end
                 return
             end
@@ -433,7 +439,13 @@ function match_window.create(args)
                 return cjson.decode(stdout)
             end)
 
-            if not success or not data then
+            if not success then
+                contentText.text = "JSON parse error"
+                return
+            end
+            
+            if not data then
+                contentText.text = "No data received"
                 return
             end
 
