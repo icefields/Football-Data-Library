@@ -158,7 +158,7 @@ function match_window.create(args)
     local button = wibox.widget {
         {
             id = "icon",
-            text = args.icon or "",  -- Soccer ball Nerd Font icon
+            text = args.icon or "󰒸",  -- Nerd Font soccer/football icon
             widget = wibox.widget.textbox,
             align = "center",
             valign = "center",
