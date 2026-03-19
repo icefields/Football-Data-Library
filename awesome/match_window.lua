@@ -427,10 +427,13 @@ function match_window.create(args)
 
         -- Run async
         awful.spawn.easy_async(cmd, function(stdout, stderr, exitreason, exitcode)
+            -- Debug: show command and exit code
+            local debug_info = "Cmd: " .. (currentTab or "unknown") .. " exit=" .. tostring(exitcode)
+            
             if exitcode ~= 0 then
                 -- Only show error if we don't have cached data
                 if not cache.matches.data and not cache.standings.data and not cache.champions.data then
-                    contentText.text = "Error: " .. (stderr or "fetch failed") .. " (code: " .. tostring(exitcode) .. ")"
+                    contentText.text = "Error: " .. (stderr or "fetch failed") .. " (" .. debug_info .. ")"
                 end
                 return
             end
@@ -440,13 +443,25 @@ function match_window.create(args)
             end)
 
             if not success then
-                contentText.text = "JSON parse error"
+                contentText.text = "JSON parse error (" .. debug_info .. ")"
                 return
             end
             
             if not data then
-                contentText.text = "No data received"
+                contentText.text = "No data received (" .. debug_info .. ")"
                 return
+            end
+            
+            -- Debug: check data structure
+            if currentTab == "champions" then
+                if not data.champions then
+                    contentText.text = "No champions key in response"
+                    return
+                end
+                if not data.champions.data then
+                    contentText.text = "No champions.data key in response"
+                    return
+                end
             end
 
             -- Update in-memory cache
