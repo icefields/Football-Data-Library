@@ -22,6 +22,11 @@ function Database:open()
         error("Failed to open database: " .. self.dbPath)
     end
     
+    -- Enable WAL mode for better concurrent access
+    self.db:exec("PRAGMA journal_mode=WAL;")
+    -- Set busy timeout (5 seconds) to handle concurrent writes
+    self.db:exec("PRAGMA busy_timeout=5000;")
+    
     self:createTables()
     return self
 end
