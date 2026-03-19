@@ -383,7 +383,8 @@ function match_window.create(args)
         
         -- Show cached data immediately if available
         if currentTab == "scores" and cache.matches.data then
-            contentText.text = View.getMatchesString(cache.matches.data, true)
+            local rawResults = View.getMatchesString(cache.matches.data, true)
+            contentText.text = View.getFormattedResults(rawResults)
         elseif currentTab == "standings" and cache.standings.data then
             contentText.text = View.getStandingsString(cache.standings.data, currentCompetition.name)
         else
@@ -440,7 +441,8 @@ function match_window.create(args)
             
             -- Update display if still on same tab
             if currentTab == "scores" and cache.matches.data then
-                contentText.text = View.getMatchesString(cache.matches.data, true)
+                local rawResults = View.getMatchesString(cache.matches.data, true)
+                contentText.text = View.getFormattedResults(rawResults)
             elseif currentTab == "standings" and cache.standings.data then
                 contentText.text = View.getStandingsString(cache.standings.data, currentCompetition.name)
             end

@@ -188,5 +188,78 @@ function View.getMatchesString(matches, showCompetition)
     return table.concat(lines, "\n")
 end
 
+-- Month names for date formatting
+local MONTHS = {
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+}
+
+-- Format date from YYYY-MM-DD to "Month Day Year"
+local function formatDateReadable(dateStr)
+    if not dateStr then return "N/A" end
+    local year, month, day = dateStr:match("^(%d%d%d%d)%-(%d%d)%-(%d%d)")
+    if not year then return dateStr end
+    local monthNum = tonumber(month)
+    if monthNum < 1 or monthNum > 12 then return dateStr end
+    local monthName = MONTHS[monthNum]
+    local dayNum = tonumber(day)
+    -- Remove leading zero from day
+    return string.format("%s %d %s", monthName, dayNum, year)
+end
+
+-- Format results in a more readable format (for widgets)
+-- Input: raw text from View.getMatchesString
+-- Output: formatted with date on one line, teams + score on next
+-- Format:
+--   April 5 2026 (Serie A)
+--   FC Internazionale Milano - AS Roma
+-- or for finished:
+--   March 14 2026 (Serie A)
+--   FC Internazionale Milano - Atalanta BC 1 - 1
+function View.getFormattedResults(rawResultsText)
+    local lines = {}
+    
+    -- Parse each line from raw results
+    for line in rawResultsText:gmatch("[^\n]+") do
+        -- Parse: [YYYY-MM-DD] home-team score - score away-team (STATUS) - Competition
+        local dateStr, homeTeam, homeScore, awayScore, awayTeam, status, competition = line:match(
+            "^%[([^%]]+)%]%s*(.-)%s+(%d*)%s*-%s*(%d*)%s*(.-)%s+%(([^)]+)%)%s*-%s*(.+)$"
+        )
+        
+        -- Try alternate format for scheduled/timed matches without scores
+        if not dateStr then
+            dateStr, homeTeam, awayTeam, status, competition = line:match(
+                "^%[([^%]]+)%]%s*(.-)%s+vs%s+(.-)%s+%(([^)]+)%)%s*-%s*(.+)$"
+            )
+        end
+        
+        if dateStr then
+            -- Format date line
+            local formattedDate = formatDateReadable(dateStr)
+            table.insert(lines, string.format("%s (%s)", formattedDate, competition or "Unknown"))
+            
+            -- Format match line
+            local matchLine = string.format("%s - %s", homeTeam or "Unknown", awayTeam or "Unknown")
+            
+            -- Add score for finished matches only
+            if status and status ~= "TIMED" and status ~= "SCHEDULED" and status ~= "POSTPONED" then
+                if homeScore and awayScore then
+                    matchLine = matchLine .. string.format(" %s - %s", homeScore, awayScore)
+                end
+            end
+            
+            table.insert(lines, matchLine)
+            table.insert(lines, "")  -- Empty line between matches
+        end
+    end
+    
+    -- Remove trailing empty line
+    if #lines > 0 and lines[#lines] == "" then
+        lines[#lines] = nil
+    end
+    
+    return table.concat(lines, "\n")
+end
+
 return View
 
