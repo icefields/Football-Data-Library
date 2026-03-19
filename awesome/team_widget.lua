@@ -1,8 +1,20 @@
 -- awesome/team_widget.lua
 -- AwesomeWM widget for displaying team match results
+--
+-- Usage in rc.lua:
+--   package.path = "/path/to/Football-Data-Library/?.lua;/path/to/Football-Data-Library/?/init.lua;" .. package.path
+--   local football = require("football")
+--   local team_widget = require("awesome.team_widget")
+--   local widget = team_widget.create({
+--     team_id = 108,  -- Inter Milan
+--     awful = awful,
+--     beautiful = beautiful,
+--     wibox = wibox,
+--     gears = gears,
+--   })
 
-local FootballData = require("football_widget.awesome.init")
-local View = require("football_widget.awesome.view")
+local FootballData = require("football")
+local View = require("football.view")
 
 local team_widget = {}
 
@@ -44,17 +56,17 @@ local default_config = {
 local footballApp = nil
 
 -- Get or initialize football app
-local function getFootballApp(envPath)
+local function getFootballApp()
     if not footballApp then
-        footballApp = FootballData.initialize(envPath)
+        footballApp = FootballData.initialize()
     end
     return footballApp
 end
 
 -- Fetch team matches
-local function getTeamMatches(config, envPath)
+local function getTeamMatches(config)
     local success, result = pcall(function()
-        local app = getFootballApp(envPath)
+        local app = getFootballApp()
         return app.service:getTeamScores(config.team_id, config.match_count, config.show_scheduled)
     end)
     
@@ -87,10 +99,6 @@ function team_widget.create(args)
     if not awful or not beautiful or not wibox or not gears then
         error("team_widget requires 'awful', 'beautiful', 'wibox', and 'gears' modules")
     end
-    
-    -- Determine env path
-    local homeDir = os.getenv("HOME")
-    local envPath = args.env_path or homeDir .. "/.config/awesome/football-lua/.env"
     
     -- Widget icon
     local icon = args.icon or "⚽"
@@ -127,13 +135,11 @@ function team_widget.create(args)
         font = font
     }
     
-    local iconWidget = button:get_children_by_id("icon")[1]
-    
     -- Update tooltip with match data
     local function updateTooltip()
         tooltip.text = "Loading..."
         
-        local matches, err = getTeamMatches(config, envPath)
+        local matches, err = getTeamMatches(config)
         
         if matches and #matches > 0 then
             local text = View.getMatchesString(matches, config.show_competition)
@@ -196,4 +202,3 @@ function team_widget.create(args)
 end
 
 return team_widget
-

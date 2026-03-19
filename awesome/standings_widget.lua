@@ -1,8 +1,19 @@
 -- awesome/standings_widget.lua
 -- AwesomeWM widget for displaying league standings with competition selection
+--
+-- Usage in rc.lua:
+--   package.path = "/path/to/Football-Data-Library/?.lua;/path/to/Football-Data-Library/?/init.lua;" .. package.path
+--   local football = require("football")
+--   local standings_widget = require("awesome.standings_widget")
+--   local widget = standings_widget.create({
+--     awful = awful,
+--     beautiful = beautiful,
+--     wibox = wibox,
+--     gears = gears,
+--   })
 
-local FootballData = require("football_widget.init")
-local View = require("football_widget.view")
+local FootballData = require("football")
+local View = require("football.view")
 
 local standings_widget = {}
 
@@ -26,17 +37,17 @@ local default_config = {
 local footballApp = nil
 
 -- Get or initialize football app
-local function getFootballApp(envPath)
+local function getFootballApp()
     if not footballApp then
-        footballApp = FootballData.initialize(envPath)
+        footballApp = FootballData.initialize()
     end
     return footballApp
 end
 
 -- Fetch standings
-local function getStandings(config, envPath)
+local function getStandings(config)
     local success, result = pcall(function()
-        local app = getFootballApp(envPath)
+        local app = getFootballApp()
         return app.service:getStandings(config.competition)
     end)
     
@@ -62,10 +73,6 @@ function standings_widget.create(args)
     if not awful or not beautiful or not wibox or not gears then
         error("standings_widget requires 'awful', 'beautiful', 'wibox', and 'gears' modules")
     end
-    
-    -- Determine env path
-    local homeDir = os.getenv("HOME")
-    local envPath = args.env_path or homeDir .. "/.config/awesome/football-lua/.env"
     
     -- Available competitions
     local competitions = args.competitions or {
@@ -136,7 +143,7 @@ function standings_widget.create(args)
     local function updateStandings(competitionCode, competitionName)
         popup.widget.content.text = "Loading..."
         
-        local standings, err = getStandings({ competition = competitionCode }, envPath)
+        local standings, err = getStandings({ competition = competitionCode })
         
         if standings and #standings > 0 then
             local text = View.getStandingsString(standings, competitionName)
@@ -216,4 +223,3 @@ function standings_widget.create(args)
 end
 
 return standings_widget
-

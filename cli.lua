@@ -8,7 +8,7 @@ if scriptPath then
     package.path = scriptPath .. "/?.lua;" .. scriptPath .. "/?/init.lua;" .. package.path
 end
 
-local FootballData = require("init")
+local FootballData = require("football")
 local View = require("football.view")
 
 local CLI = {}
