@@ -149,6 +149,7 @@ function match_window.create(args)
     
     local font = args.font or beautiful.font
     local currentCompetition = config.competitions and config.competitions[1] or match_window.COMPETITIONS[1]
+    local iconFont = args.icon_font or "Symbols Nerd Font Mono 14"
     
     -- Current tab: "scores" or "standings"
     local currentTab = "scores"
@@ -157,11 +158,11 @@ function match_window.create(args)
     local button = wibox.widget {
         {
             id = "icon",
-            text = args.icon or "⚽",
+            text = args.icon or "",  -- Soccer ball Nerd Font icon
             widget = wibox.widget.textbox,
             align = "center",
             valign = "center",
-            font = font
+            font = iconFont
         },
         widget = wibox.container.background,
         bg = "#00000000",
@@ -177,14 +178,14 @@ function match_window.create(args)
         widget = wibox.widget.textbox,
         font = args.font or beautiful.font,
         fg = beautiful.fg_normal or "#ffffff",
-        forced_width = 450,
+        forced_width = 550,
     }
     
     -- Create tab buttons
     local scoresTab = wibox.widget {
         {
             id = "label",
-            text = "📊 Scores",
+            text = "📊 Results",
             widget = wibox.widget.textbox,
             align = "center",
             font = font
@@ -192,7 +193,8 @@ function match_window.create(args)
         bg = beautiful.bg_focus or "#3a3a5a",
         fg = beautiful.fg_normal or "#ffffff",
         widget = wibox.container.background,
-        forced_width = 100,
+        forced_width = 150,
+        forced_height = 30,
     }
     
     local standingsTab = wibox.widget {
@@ -206,7 +208,8 @@ function match_window.create(args)
         bg = beautiful.bg_normal or "#1a1a2e",
         fg = beautiful.fg_normal or "#ffffff",
         widget = wibox.container.background,
-        forced_width = 100,
+        forced_width = 150,
+        forced_height = 30,
     }
     
     -- Competition selector dropdown
@@ -227,14 +230,18 @@ function match_window.create(args)
             scoresTab.bg = beautiful.bg_focus or "#3a3a5a"
             standingsTab.bg = beautiful.bg_normal or "#1a1a2e"
             if popup then
-                popup.widget:get_children_by_id("competitionContainer")[1].visible = false
+                local container = popup.widget:get_children_by_id("competitionContainer")[1]
+                if container then container.visible = false end
             end
+            updateContent()
         else
             scoresTab.bg = beautiful.bg_normal or "#1a1a2e"
             standingsTab.bg = beautiful.bg_focus or "#3a3a5a"
             if popup then
-                popup.widget:get_children_by_id("competitionContainer")[1].visible = true
+                local container = popup.widget:get_children_by_id("competitionContainer")[1]
+                if container then container.visible = true end
             end
+            updateContent()
         end
     end
     
@@ -268,8 +275,8 @@ function match_window.create(args)
         visible = false,
         ontop = true,
         placement = awful.placement.centered,
-        minimum_width = 500,
-        maximum_width = 500,
+        minimum_width = 600,
+        maximum_width = 600,
         minimum_height = 500,
         widget = wibox.widget {
             layout = wibox.layout.fixed.vertical,
@@ -278,9 +285,9 @@ function match_window.create(args)
                 {
                     {
                         {
-                            text = "⚽ Football",
+                            text = "  Football",
                             widget = wibox.widget.textbox,
-                            font = font
+                            font = iconFont
                         },
                         nil,
                         {
@@ -423,7 +430,7 @@ function match_window.create(args)
             if popup.visible then
                 popup.visible = false
             else
-                updateContent()
+                setActiveTab("scores")  -- Reset to scores tab and load data
                 popup.visible = true
             end
         end)
