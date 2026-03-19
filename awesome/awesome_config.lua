@@ -117,11 +117,11 @@ local fonts = {
 -- SIZES
 --------------------------------------------------------------------------------
 -- All sizes in pixels
-config.sizes = {
+local sizes = {
     -- ═══════════════════════════════════════════════════════════════════════
     -- WINDOW DIMENSIONS
     -- ═══════════════════════════════════════════════════════════════════════
-    window_min_width = 650,       -- Minimum popup width (can't shrink below this)
+    window_min_width = 550,       -- Minimum popup width (can't shrink below this)
     window_max_width = 750,       -- Maximum popup width (can't expand beyond this)
     window_min_height = 740,      -- Minimum popup height
     window_max_height = 950,      -- Maximum popup height (fits 1080p screens)
@@ -160,7 +160,7 @@ config.sizes = {
 -- PADDINGS & MARGINS
 --------------------------------------------------------------------------------
 -- All values in pixels
-config.paddings = {
+local paddings = {
     -- ═══════════════════════════════════════════════════════════════════════
     -- WIBAR BUTTON PADDING
     -- ═══════════════════════════════════════════════════════════════════════
@@ -295,9 +295,35 @@ function config.getColors(beautiful)
 end
 
 function config.getFonts(beautiful)
-    if beautiful ~= nil then
+    local f = {}
+    -- Content font: fallback chain
+    f.content = fonts.content or beautiful.font
+    -- Title font: fallback chain
+    f.title = fonts.title or beautiful.mainFont or f.content
+    -- Pagination fonts: fallback to content
+    f.pagination_button = fonts.pagination_button or f.content
+    f.pagination_label = fonts.pagination_label or f.content
+    -- Icon font: fallback chain
+    f.icon = fonts.icon or beautiful.topBar_button_font or beautiful.font
+    -- Scale factor
+    f.icon_scale = fonts.icon_scale
+    return f
+end
+
+function config.getSizes(beautiful)
+    local s = {}
+    for k, v in pairs(sizes) do
+        s[k] = v
     end
-    return fonts
+    -- Override with beautiful theme if available
+    if beautiful and beautiful.topBar_buttonSize then
+        s.button_size = beautiful.topBar_buttonSize
+    end
+    return s
+end
+
+function config.getPaddings()
+    return paddings
 end
 
 

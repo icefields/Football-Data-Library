@@ -293,35 +293,35 @@ function match_window.create(args)
 
     -- Use config defaults (can override via args.config)
     local cfg = args.config or default_config
-    -- Color scheme from config
+
+    -- Get config sections (with beautiful theme overrides applied)
     local colors = cfg.getColors(beautiful)
-     
+    local fonts = cfg.getFonts(beautiful)
+    local sizes = cfg.getSizes(beautiful)
+    local paddings = cfg.getPaddings()
+
     -- Merge config with defaults
     local config = {}
     for k, v in pairs(default_config) do
         config[k] = args[k] ~= nil and args[k] or v
     end
-      
-    -- Fonts (from config or beautiful theme)
-    local contentFont = beautiful.font or args.font or cfg.fonts.content    
-    local titleFont = beautiful.mainFont or cfg.fonts.title or contentFont
-    local iconFontRaw = args.icon_font or cfg.fonts.icon or beautiful.topBar_button_font or beautiful.font
+
+    -- Font references (from getFonts result)
+    local contentFont = fonts.content
+    local titleFont = fonts.title
+    local iconFontRaw = fonts.icon
     local iconFontSize = tonumber(iconFontRaw:match("(%d+)$")) or 12
-    local iconFontScaled = iconFontRaw:gsub("(%d+)$", tostring(math.floor(iconFontSize * cfg.fonts.icon_scale)))
-    local paginationButtonFont = cfg.fonts.pagination_button or contentFont
-    local paginationLabelFont = cfg.fonts.pagination_label or contentFont
+    local iconFontScaled = iconFontRaw:gsub("(%d+)$", tostring(math.floor(iconFontSize * fonts.icon_scale)))
+    local paginationButtonFont = fonts.pagination_button
+    local paginationLabelFont = fonts.pagination_label
 
     -- Icons (from config)
     local footballIcon = args.icon or cfg.icons.football
 
-    -- Sizes (from config)
-    local sizes = cfg.sizes
-    local paddings = cfg.paddings
-
     local currentCompetition = args.competitions and args.competitions[1] or cfg.COMPETITIONS[1]
 
     -- Button size from beautiful theme or config
-    local buttonSize = beautiful.topBar_buttonSize or beautiful.wibar_height or sizes.button_size
+    local buttonSize = sizes.button_size
 
     -- Current tab: "scores", "standings", or "champions"
     local currentTab = "scores"
