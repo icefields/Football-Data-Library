@@ -958,30 +958,8 @@ function match_window.create(args)
         c.bg = colors.bg_button
     end)
 
-    -- Auto-refresh timer
-    local refresh_timer = nil
-    if cfg.defaults.auto_refresh then
-        refresh_timer = gears.timer {
-            timeout = cfg.defaults.refresh_interval,
-            autostart = true,
-            call_now = false,
-            callback = function()
-                -- Invalidate cache to force refresh
-                cache.matches.timestamp = 0
-                cache.standings.timestamp = 0
-                cache.champions.timestamp = 0
-                if popup.visible then
-                    updateContent()
-                end
-            end
-        }
-    end
-
     -- Cleanup on exit
     awesome.connect_signal("exit", function()
-        if refresh_timer then
-            refresh_timer:stop()
-        end
         if footballApp then
             footballApp.database:close()
         end
@@ -990,7 +968,6 @@ function match_window.create(args)
     return centeredButton, {
         popup = popup,
         refresh = updateContent,
-        timer = refresh_timer,
         setTeamId = function(teamId)
             cfg.defaults.team_id = teamId
             cache.matches.timestamp = 0  -- Invalidate cache

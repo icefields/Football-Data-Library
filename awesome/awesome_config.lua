@@ -180,8 +180,6 @@ config.defaults = {
     team_id = 108,  -- Inter Milan
     match_count = 30,  -- Number of matches to fetch for team results
     show_scheduled = false,
-    auto_refresh = true,
-    refresh_interval = 300,  -- 5 minutes
     cache_timeout = 300,     -- Cache data for 5 minutes
     -- Champions League code comes from COMPETITIONS (DRY)
     champions_match_count = 50,    -- Total CL matches to fetch (finished only)
