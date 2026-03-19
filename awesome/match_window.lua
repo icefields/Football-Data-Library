@@ -251,6 +251,7 @@ function match_window.create(args)
     end
     
     local font = args.font or beautiful.font
+    local footballIcon = args.icon or "󰒸"  -- Nerd Font soccer/football icon (reusable)
     local currentCompetition = config.competitions and config.competitions[1] or match_window.COMPETITIONS[1]
     
     -- Popup colors from beautiful theme
@@ -267,14 +268,14 @@ function match_window.create(args)
     -- Nerd Font icons can extend beyond their bounding box, so we scale the font slightly smaller
     local iconFont = args.icon_font or beautiful.topBar_button_font or beautiful.font
     local iconFontSize = tonumber(iconFont:match("(%d+)$")) or 12
-    -- Make icon font slightly smaller than button to prevent clipping (Nerd Font glyphs extend beyond bounds)
-    local iconFontScaled = iconFont:gsub("(%d+)$", tostring(math.floor(iconFontSize * 0.85)))
+    -- Make icon font slightly smaller to prevent clipping (Nerd Font glyphs extend beyond bounds)
+    local iconFontScaled = iconFont:gsub("(%d+)$", tostring(math.floor(iconFontSize * 0.90)))
     
     local button = wibox.widget {
         {
             {
                 id = "icon",
-                text = args.icon or "󰒸",  -- Nerd Font soccer/football icon
+                text = footballIcon,
                 widget = wibox.widget.textbox,
                 align = "center",
                 valign = "center",
@@ -476,9 +477,9 @@ function match_window.create(args)
                 {
                     {
                         {
-                            text = "󰒸  Football",
+                            text = footballIcon .. "  Football",
                             widget = wibox.widget.textbox,
-                            font = iconFont
+                            font = iconFontScaled
                         },
                         nil,
                         {
