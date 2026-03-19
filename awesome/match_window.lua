@@ -178,7 +178,7 @@ function match_window.create(args)
         widget = wibox.widget.textbox,
         font = args.font or beautiful.font,
         fg = beautiful.fg_normal or "#ffffff",
-        forced_width = 550,
+        forced_width = 650,
     }
     
     -- Create tab buttons
@@ -188,13 +188,16 @@ function match_window.create(args)
             text = "📊 Results",
             widget = wibox.widget.textbox,
             align = "center",
+            valign = "center",
             font = font
         },
-        bg = beautiful.bg_focus or "#3a3a5a",
-        fg = beautiful.fg_normal or "#ffffff",
+        bg = "#3a3a5a",
+        fg = "#ffffff",
         widget = wibox.container.background,
         forced_width = 150,
         forced_height = 30,
+        shape = gears.shape.rounded_rect,
+        shape_border_width = 0,
     }
     
     local standingsTab = wibox.widget {
@@ -203,13 +206,16 @@ function match_window.create(args)
             text = "🏆 Standings",
             widget = wibox.widget.textbox,
             align = "center",
+            valign = "center",
             font = font
         },
-        bg = beautiful.bg_normal or "#1a1a2e",
-        fg = beautiful.fg_normal or "#ffffff",
+        bg = "#1a1a2e",
+        fg = "#ffffff",
         widget = wibox.container.background,
         forced_width = 150,
         forced_height = 30,
+        shape = gears.shape.rounded_rect,
+        shape_border_width = 0,
     }
     
     -- Competition selector dropdown
@@ -255,16 +261,16 @@ function match_window.create(args)
     local function setActiveTab(tab)
         currentTab = tab
         if tab == "scores" then
-            scoresTab.bg = beautiful.bg_focus or "#3a3a5a"
-            standingsTab.bg = beautiful.bg_normal or "#1a1a2e"
+            scoresTab.bg = "#3a3a5a"
+            standingsTab.bg = "#1a1a2e"
             if popup then
                 local container = popup.widget:get_children_by_id("competitionContainer")[1]
                 if container then container.visible = false end
             end
             updateContent()
         else
-            scoresTab.bg = beautiful.bg_normal or "#1a1a2e"
-            standingsTab.bg = beautiful.bg_focus or "#3a3a5a"
+            scoresTab.bg = "#1a1a2e"
+            standingsTab.bg = "#3a3a5a"
             if popup then
                 local container = popup.widget:get_children_by_id("competitionContainer")[1]
                 if container then container.visible = true end
@@ -278,9 +284,9 @@ function match_window.create(args)
         visible = false,
         ontop = true,
         placement = awful.placement.centered,
-        minimum_width = 600,
-        maximum_width = 600,
-        minimum_height = 500,
+        minimum_width = 700,
+        maximum_width = 700,
+        minimum_height = 550,
         widget = wibox.widget {
             layout = wibox.layout.fixed.vertical,
             -- Header with close button
@@ -288,7 +294,7 @@ function match_window.create(args)
                 {
                     {
                         {
-                            text = "  Football",
+                            text = "󰒸  Football",
                             widget = wibox.widget.textbox,
                             font = iconFont
                         },
@@ -313,27 +319,35 @@ function match_window.create(args)
                     widget = wibox.container.margin,
                     margins = 8,
                 },
-                bg = beautiful.bg_focus or "#3a3a5a",
-                fg = beautiful.fg_normal or "#ffffff",
+                bg = "#3a3a5a",
+                fg = "#ffffff",
                 widget = wibox.container.background,
             },
             -- Tab bar
             {
                 {
-                    scoresTab,
-                    standingsTab,
-                    layout = wibox.layout.flex.horizontal,
-                    spacing = 2,
+                    {
+                        scoresTab,
+                        standingsTab,
+                        layout = wibox.layout.fixed.horizontal,
+                        spacing = 4,
+                    },
+                    widget = wibox.container.margin,
+                    margins = 4,
                 },
-                widget = wibox.container.margin,
-                margins = { left = 8, right = 8, top = 4, bottom = 4 }
+                widget = wibox.container.background,
+                bg = "#0d0d1a",
             },
             -- Competition selector (for standings tab)
             {
                 id = "competitionContainer",
-                competitionButtons,
+                {
+                    competitionButtons,
+                    widget = wibox.container.background,
+                    bg = beautiful.bg_normal or "#1a1a2e",
+                },
                 widget = wibox.container.margin,
-                margins = { left = 8, right = 8, bottom = 4 },
+                margins = { left = 8, right = 8, bottom = 4, top = 4 },
                 visible = false,
             },
             -- Content area
@@ -341,7 +355,7 @@ function match_window.create(args)
                 {
                     contentText,
                     widget = wibox.container.background,
-                    bg = beautiful.bg_normal or "#1a1a2e",
+                    bg = "#1a1a2e",
                     forced_height = 400,
                 },
                 widget = wibox.container.margin,
@@ -357,33 +371,35 @@ function match_window.create(args)
                 text = comp.name,
                 widget = wibox.widget.textbox,
                 align = "center",
+                valign = "center",
                 font = font
             },
-            bg = comp.code == currentCompetition.code and (beautiful.bg_focus or "#3a3a5a") or (beautiful.bg_normal or "#1a1a2e"),
-            fg = beautiful.fg_normal or "#ffffff",
+            bg = comp.code == currentCompetition.code and "#3a3a5a" or "#1a1a2e",
+            fg = "#ffffff",
             widget = wibox.container.background,
             forced_width = 80,
+            forced_height = 24,
             buttons = gears.table.join(
                 awful.button({}, 1, function()
                     currentCompetition = comp
                     -- Update button highlights
                     for _, btn in ipairs(competitionButtons.children) do
-                        btn.bg = beautiful.bg_normal or "#1a1a2e"
+                        btn.bg = "#1a1a2e"
                     end
-                    compBtn.bg = beautiful.bg_focus or "#3a3a5a"
+                    compBtn.bg = "#3a3a5a"
                     -- Refresh standings
                     updateContent()
                 end)
             )
         }
         compBtn:connect_signal("mouse::enter", function(c)
-            c.bg = beautiful.bg_urgent or "#5a5a8a"
+            c.bg = "#5a5a8a"
         end)
         compBtn:connect_signal("mouse::leave", function(c)
             if comp.code == currentCompetition.code then
-                c.bg = beautiful.bg_focus or "#3a3a5a"
+                c.bg = "#3a3a5a"
             else
-                c.bg = beautiful.bg_normal or "#1a1a2e"
+                c.bg = "#1a1a2e"
             end
         end)
         competitionButtons:add(compBtn)
@@ -407,23 +423,23 @@ function match_window.create(args)
     -- Hover effects for tabs
     scoresTab:connect_signal("mouse::enter", function(c)
         if currentTab ~= "scores" then
-            c.bg = beautiful.bg_urgent or "#5a5a8a"
+            c.bg = "#5a5a8a"
         end
     end)
     scoresTab:connect_signal("mouse::leave", function(c)
         if currentTab ~= "scores" then
-            c.bg = beautiful.bg_normal or "#1a1a2e"
+            c.bg = "#1a1a2e"
         end
     end)
     
     standingsTab:connect_signal("mouse::enter", function(c)
         if currentTab ~= "standings" then
-            c.bg = beautiful.bg_urgent or "#5a5a8a"
+            c.bg = "#5a5a8a"
         end
     end)
     standingsTab:connect_signal("mouse::leave", function(c)
         if currentTab ~= "standings" then
-            c.bg = beautiful.bg_normal or "#1a1a2e"
+            c.bg = "#1a1a2e"
         end
     end)
     
@@ -441,7 +457,7 @@ function match_window.create(args)
     
     -- Hover effect for button
     button:connect_signal("mouse::enter", function(c)
-        c.bg = beautiful.bg_focus or "#3a3a5a"
+        c.bg = "#3a3a5a"
     end)
     button:connect_signal("mouse::leave", function(c)
         c.bg = nil
