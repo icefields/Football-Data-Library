@@ -78,21 +78,21 @@ local function loadCacheFromFile(cacheFile)
     if not file then
         return { matches = { data = nil, timestamp = 0 }, standings = { data = nil, timestamp = 0, competition = nil } }
     end
-    
+
     local content = file:read("*all")
     file:close()
-    
+
     local success, data = pcall(function()
         return require("cjson").decode(content)
     end)
-    
+
     if success and data then
         return {
             matches = data.matches or { data = nil, timestamp = 0 },
             standings = data.standings or { data = nil, timestamp = 0, competition = nil },
         }
     end
-    
+
     return { matches = { data = nil, timestamp = 0 }, standings = { data = nil, timestamp = 0, competition = nil } }
 end
 
@@ -102,26 +102,26 @@ local function saveCacheToFile(cacheFile, cacheData)
     if not file then
         return false
     end
-    
+
     -- Create directory if it doesn't exist
     local cacheDir = cacheFile:match("^(.*)/[^/]+$")
     if cacheDir then
         os.execute("mkdir -p " .. cacheDir)
     end
-    
+
     local success, content = pcall(function()
         return require("cjson").encode({
             matches = cacheData.matches,
             standings = cacheData.standings,
         })
     end)
-    
+
     if success and content then
         file:write(content)
         file:close()
         return true
     end
-    
+
     file:close()
     return false
 end
@@ -153,16 +153,16 @@ end
 -- Fetch team matches (with caching)
 local function getTeamMatches(config, cacheFile)
     ensureCacheLoaded(cacheFile)
-    
+
     if isCacheValid(cache.matches) then
         return cache.matches.data
     end
-    
+
     local success, result = pcall(function()
         local app = getFootballApp()
         return app.service:getTeamScores(config.team_id, config.match_count, config.show_scheduled)
     end)
-    
+
     if success and result then
         cache.matches.data = result
         cache.matches.timestamp = os.time()
@@ -176,16 +176,16 @@ end
 -- Fetch standings (with caching)
 local function getStandings(competitionCode, cacheFile)
     ensureCacheLoaded(cacheFile)
-    
+
     if isCacheValid(cache.standings) and cache.standings.competition == competitionCode then
         return cache.standings.data
     end
-    
+
     local success, result = pcall(function()
         local app = getFootballApp()
         return app.service:getStandings(competitionCode)
     end)
-    
+
     if success and result then
         cache.standings.data = result
         cache.standings.timestamp = os.time()
@@ -202,75 +202,71 @@ end
 -- @return wibox.widget, table - The widget and controls table
 function match_window.create(args)
     args = args or {}
-    
+
     -- Color scheme (customizable via args.colors)
     local colors = args.colors or {
         -- Text colors
-        text = "#ffffff",
-        text_dim = "#aaaaaa",
-        
+        fg_text = "#ffffff",
+        fg_text_dim = "#aaaaaa",
+
         -- Icon colors
         icon_color = "#ffffff",      -- Football icon color
         icon_hover = "#3a3a5a",      -- Icon hover background
-        
+
         -- Tab colors
         tab_active = "#3a3a5a",
         tab_inactive = "#1a1a2e",
         tab_hover = "#5a5a8a",
-        
+
         -- Background colors
         bg_header = "#3a3a5a",
         bg_tab_bar = "#0d0d1a",
-        bg_content = "#1a1a2e",
+        bg_window = "#1a1a2e",
         bg_button = "#00000000",
-        
+
         -- Button margin (spacing from wibar edges)
         button_margin_top = 2,
         button_margin_bottom = 2,
         button_margin_left = 2,
         button_margin_right = 2,
-        
+
         -- Icon padding (prevents clipping of Nerd Font glyphs)
         icon_padding = 2,
     }
-    
+
     -- Merge config with defaults
     local config = {}
     for k, v in pairs(default_config) do
         config[k] = args[k] ~= nil and args[k] or v
     end
-    
+
     -- Required modules
     local awful = args.awful
     local beautiful = args.beautiful
     local wibox = args.wibox
     local gears = args.gears
-    
+
     if not awful or not beautiful or not wibox or not gears then
         error("match_window requires 'awful', 'beautiful', 'wibox', and 'gears' modules")
     end
-    
+
     local font = args.font or beautiful.font
     local footballIcon = args.icon or "󰒸"  -- Nerd Font soccer/football icon (reusable)
     local currentCompetition = config.competitions and config.competitions[1] or match_window.COMPETITIONS[1]
     
-    -- Popup colors from beautiful theme
-    local popupBg = beautiful.tooltip_bg_color or beautiful.bg_normal or "#1a1a2e"
-    local popupFg = beautiful.tooltip_fg_color or beautiful.fg_normal or "#ffffff"
-    
     -- Button size from beautiful theme
     local buttonSize = beautiful.topBar_buttonSize or beautiful.wibar_height or 24
-    
+
     -- Current tab: "scores" or "standings"
     local currentTab = "scores"
-    
+
     -- Create the button widget (icon in wibar)
     -- Nerd Font icons can extend beyond their bounding box, so we scale the font slightly smaller
     local iconFont = args.icon_font or beautiful.topBar_button_font or beautiful.font
     local iconFontSize = tonumber(iconFont:match("(%d+)$")) or 12
     -- Make icon font slightly smaller to prevent clipping (Nerd Font glyphs extend beyond bounds)
     local iconFontScaled = iconFont:gsub("(%d+)$", tostring(math.floor(iconFontSize * 0.90)))
-    
+
     local button = wibox.widget {
         {
             {
@@ -290,7 +286,7 @@ function match_window.create(args)
         shape = gears.shape.rounded_bar,
         forced_height = buttonSize,
     }
-    
+
     -- Wrap button in margin container for spacing from bar edges
     local buttonContainer = wibox.widget {
         button,
@@ -300,7 +296,7 @@ function match_window.create(args)
         left = colors.button_margin_left,
         right = colors.button_margin_right,
     }
-    
+
     -- Center the button vertically in the wibar
     local centeredButton = wibox.widget {
         buttonContainer,
@@ -308,17 +304,17 @@ function match_window.create(args)
         valign = "center",
         halign = "center",
     }
-    
+
     -- Create content text widget (shared by both tabs)
     local contentText = wibox.widget {
         id = "content",
         text = "Click a tab to load data...",
         widget = wibox.widget.textbox,
         font = args.font or beautiful.font,
-        fg = popupFg,
+        fg = colors.fg_text,
         forced_width = 700,
     }
-    
+
     -- Create tab buttons
     local scoresTab = wibox.widget {
         {
@@ -330,14 +326,14 @@ function match_window.create(args)
             font = font
         },
         bg = colors.tab_active,
-        fg = popupFg,
+        fg = colors.fg_text,
         widget = wibox.container.background,
         forced_width = 150,
         forced_height = 30,
         shape = gears.shape.rounded_rect,
         shape_border_width = 0,
     }
-    
+
     local standingsTab = wibox.widget {
         {
             id = "label",
@@ -348,39 +344,39 @@ function match_window.create(args)
             font = font
         },
         bg = colors.tab_inactive,
-        fg = popupFg,
+        fg = colors.fg_text,
         widget = wibox.container.background,
         forced_width = 150,
         forced_height = 30,
         shape = gears.shape.rounded_rect,
         shape_border_width = 0,
     }
-    
+
     -- Competition selector dropdown
     local competitionButtons = wibox.widget {
         layout = wibox.layout.flex.horizontal,
         spacing = 2,
     }
-    
+
     local competitions = args.competitions or match_window.COMPETITIONS
-    
+
     -- Forward declaration for popup (needed for close button)
     local popup = nil
-    
+
     -- Forward declaration for updateContent (needed for setActiveTab)
     local updateContent = nil
-    
+
     -- Cache file path
     local cacheFile = config.cache_file or default_config.cache_file
-    
+
     -- Path to fetch script (same directory as this file)
     local fetchScript = debug.getinfo(1, "S").source:match("^@(.+/)match_window%.lua$") .. "fetch_data.lua"
-    
+
     -- Update content based on current tab (async version)
     updateContent = function()
         -- Load cache first to show immediately if available
         ensureCacheLoaded(cacheFile)
-        
+
         -- Show cached data immediately if available
         if currentTab == "scores" and cache.matches.data then
             local rawResults = View.getMatchesString(cache.matches.data, true)
@@ -390,7 +386,7 @@ function match_window.create(args)
         else
             contentText.text = "Loading..."
         end
-        
+
         -- Check if cache is still valid (no need to fetch)
         if currentTab == "scores" and isCacheValid(cache.matches) then
             return  -- Cache is fresh, no need to fetch
@@ -398,7 +394,7 @@ function match_window.create(args)
         if currentTab == "standings" and isCacheValid(cache.standings) and cache.standings.competition == currentCompetition.code then
             return  -- Cache is fresh, no need to fetch
         end
-        
+
         -- Build command for async fetch
         local cmd = string.format(
             "cd %s && lua %s %s %d %d %s",
@@ -409,7 +405,7 @@ function match_window.create(args)
             config.match_count,
             currentCompetition.code
         )
-        
+
         -- Run async
         awful.spawn.easy_async(cmd, function(stdout, stderr, exitreason, exitcode)
             if exitcode ~= 0 then
@@ -419,15 +415,15 @@ function match_window.create(args)
                 end
                 return
             end
-            
+
             local success, data = pcall(function()
                 return cjson.decode(stdout)
             end)
-            
+
             if not success or not data then
                 return
             end
-            
+
             -- Update in-memory cache
             if data.matches and data.matches.data then
                 cache.matches = data.matches
@@ -435,10 +431,10 @@ function match_window.create(args)
             if data.standings and data.standings.data then
                 cache.standings = data.standings
             end
-            
+
             -- Save to file
             saveCacheToFile(cacheFile, cache)
-            
+
             -- Update display if still on same tab
             if currentTab == "scores" and cache.matches.data then
                 local rawResults = View.getMatchesString(cache.matches.data, true)
@@ -448,7 +444,7 @@ function match_window.create(args)
             end
         end)
     end
-    
+
     -- Tab switching logic
     local function setActiveTab(tab)
         currentTab = tab
@@ -470,7 +466,7 @@ function match_window.create(args)
             updateContent()
         end
     end
-    
+
     -- Create the popup window
     popup = awful.popup {
         visible = false,
@@ -511,7 +507,7 @@ function match_window.create(args)
                     margins = 8,
                 },
                 bg = colors.bg_header,
-                fg = popupFg,
+                fg = colors.fg_text,
                 widget = wibox.container.background,
             },
             -- Tab bar
@@ -535,7 +531,7 @@ function match_window.create(args)
                 {
                     competitionButtons,
                     widget = wibox.container.background,
-                    bg = popupBg,
+                    bg = colors.bg_window,
                 },
                 widget = wibox.container.margin,
                 margins = { left = 8, right = 8, bottom = 4, top = 4 },
@@ -546,14 +542,14 @@ function match_window.create(args)
                 {
                     contentText,
                     widget = wibox.container.background,
-                    bg = popupBg,
+                    bg = colors.bg_window,
                 },
                 widget = wibox.container.margin,
                 margins = 8,
             },
         }
     }
-    
+
     -- Populate competition buttons
     for _, comp in ipairs(competitions) do
         local compBtn = wibox.widget {
@@ -565,7 +561,7 @@ function match_window.create(args)
                 font = font
             },
             bg = comp.code == currentCompetition.code and colors.tab_active or colors.tab_inactive,
-            fg = popupFg,
+            fg = colors.fg_text,
             widget = wibox.container.background,
             forced_width = 80,
             forced_height = 24,
@@ -594,7 +590,7 @@ function match_window.create(args)
         end)
         competitionButtons:add(compBtn)
     end
-    
+
     -- Tab click handlers
     scoresTab:buttons(gears.table.join(
         awful.button({}, 1, function()
@@ -602,14 +598,14 @@ function match_window.create(args)
             updateContent()
         end)
     ))
-    
+
     standingsTab:buttons(gears.table.join(
         awful.button({}, 1, function()
             setActiveTab("standings")
             updateContent()
         end)
     ))
-    
+
     -- Hover effects for tabs
     scoresTab:connect_signal("mouse::enter", function(c)
         if currentTab ~= "scores" then
@@ -621,7 +617,7 @@ function match_window.create(args)
             c.bg = colors.tab_inactive
         end
     end)
-    
+
     standingsTab:connect_signal("mouse::enter", function(c)
         if currentTab ~= "standings" then
             c.bg = colors.tab_hover
@@ -632,7 +628,7 @@ function match_window.create(args)
             c.bg = colors.tab_inactive
         end
     end)
-    
+
     -- Button click handler
     button:buttons(gears.table.join(
         awful.button({}, 1, function()
@@ -644,7 +640,7 @@ function match_window.create(args)
             end
         end)
     ))
-    
+
     -- Hover effect for button
     button:connect_signal("mouse::enter", function(c)
         c.bg = colors.icon_hover
@@ -652,7 +648,7 @@ function match_window.create(args)
     button:connect_signal("mouse::leave", function(c)
         c.bg = colors.bg_button
     end)
-    
+
     -- Auto-refresh timer
     local refresh_timer = nil
     if config.auto_refresh then
@@ -670,7 +666,7 @@ function match_window.create(args)
             end
         }
     end
-    
+
     -- Cleanup on exit
     awesome.connect_signal("exit", function()
         if refresh_timer then
@@ -680,7 +676,7 @@ function match_window.create(args)
             footballApp.database:close()
         end
     end)
-    
+
     return centeredButton, {
         popup = popup,
         refresh = updateContent,
