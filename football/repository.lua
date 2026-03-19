@@ -1,5 +1,6 @@
-local Models = require("models")
-local Database = require("database")
+-- football/repository.lua
+local Models = require("football.models")
+local Database = require("football.database")
 
 local Repository = {}
 

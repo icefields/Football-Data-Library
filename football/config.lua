@@ -1,4 +1,8 @@
+-- football/config.lua
 local config = {}
+
+-- Get the directory where this module is located
+local modulePath = debug.getinfo(1, "S").source:match("^@(.+)/football/config.lua$")
 
 local function startsWith(str, prefix)
     if not str or not prefix then return false end
@@ -38,6 +42,14 @@ function config.loadEnv(filePath)
     file:close()
     
     return envTable
+end
+
+function config.getDefaultEnvPath()
+    -- Return path to .env relative to this module's location
+    if modulePath then
+        return modulePath .. "/.env"
+    end
+    return ".env"
 end
 
 function config.validateEnv(envTable)

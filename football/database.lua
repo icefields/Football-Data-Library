@@ -1,5 +1,6 @@
+-- football/database.lua
 local sqlite3 = require("lsqlite3")
-local config = require("config")
+local config = require("football.config")
 
 local Database = {}
 

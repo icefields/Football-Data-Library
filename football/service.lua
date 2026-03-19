@@ -1,7 +1,8 @@
-local Models = require("models")
-local ApiClient = require("api_client")
-local Repository = require("repository")
-local config = require("config")
+-- football/service.lua
+local Models = require("football.models")
+local ApiClient = require("football.api_client")
+local Repository = require("football.repository")
+local config = require("football.config")
 
 local Service = {}
 

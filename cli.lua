@@ -1,7 +1,15 @@
 #!/usr/bin/env lua
 
+-- CLI entry point - run from library directory
+-- Get the directory where this script is located
+local scriptPath = debug.getinfo(1, "S").source:match("^@(.+)/cli.lua$")
+if scriptPath then
+    -- Add patterns for both file.lua and dir/init.lua styles
+    package.path = scriptPath .. "/?.lua;" .. scriptPath .. "/?/init.lua;" .. package.path
+end
+
 local FootballData = require("init")
-local View = require("view")
+local View = require("football.view")
 
 local CLI = {}
 
