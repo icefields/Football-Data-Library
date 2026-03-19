@@ -374,7 +374,7 @@ function match_window.create(args)
         text = cfg.strings.click_to_load,
         widget = wibox.widget.textbox,
         font = contentFont,
-        fg = colors.fg_text,
+        fg = colors.fg_content,
     }
 
     -- Create tab buttons
@@ -388,7 +388,7 @@ function match_window.create(args)
             font = contentFont
         },
         bg = colors.tab_active,
-        fg = colors.fg_text,
+        fg = colors.fg_tab,
         widget = wibox.container.background,
         forced_width = sizes.tab_width,
         forced_height = sizes.tab_height,
@@ -406,7 +406,7 @@ function match_window.create(args)
             font = contentFont
         },
         bg = colors.tab_inactive,
-        fg = colors.fg_text,
+        fg = colors.fg_tab,
         widget = wibox.container.background,
         forced_width = sizes.tab_width,
         forced_height = sizes.tab_height,
@@ -424,7 +424,7 @@ function match_window.create(args)
             font = contentFont
         },
         bg = colors.tab_inactive,
-        fg = colors.fg_text,
+        fg = colors.fg_tab,
         widget = wibox.container.background,
         forced_width = sizes.tab_width,
         forced_height = sizes.tab_height,
@@ -846,7 +846,7 @@ function match_window.create(args)
                 font = contentFont
             },
             bg = comp.code == currentCompetition.code and colors.tab_active or colors.tab_inactive,
-            fg = colors.fg_text,
+            fg = colors.fg_tab,
             widget = wibox.container.background,
             forced_width = sizes.competition_btn_width,
             forced_height = sizes.competition_btn_height,

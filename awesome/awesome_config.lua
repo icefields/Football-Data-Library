@@ -39,13 +39,12 @@ local colors = {
     -- ═══════════════════════════════════════════════════════════════════════
     -- TEXT COLORS (foreground)
     -- ═══════════════════════════════════════════════════════════════════════
-    fg_text = "#ffffff",          -- Main content text (match results, standings)
-    fg_text_dim = "#aaaaaa",      -- Dimmed/secondary text (unused, kept for fallback)
+    fg_content = "#ffffff",       -- Content text (match results, standings data)
+    fg_header = "#ffffff",        -- Header text ("Football" title, X button)
 
     -- ═══════════════════════════════════════════════════════════════════════
     -- TOP BAR (header with "Football" title and X close button)
     -- ═══════════════════════════════════════════════════════════════════════
-    fg_header = "#ffffff",        -- Text color for "Football" title and X button
     bg_header = "#3a3a5a",        -- Background color of the header bar
 
     -- ═══════════════════════════════════════════════════════════════════════
@@ -64,6 +63,7 @@ local colors = {
     -- ═══════════════════════════════════════════════════════════════════════
     -- TAB BAR (Results / Standings / Champions tabs)
     -- ═══════════════════════════════════════════════════════════════════════
+    fg_tab = "#ffffff",           -- Text color for tab labels
     tab_active = "#3a3a5a",       -- Background color of the currently selected tab
     tab_inactive = "#1a1a2e",      -- Background color of non-selected tabs
     tab_hover = "#5a5a8a",        -- Tab background color on mouse hover
@@ -286,12 +286,21 @@ config.defaults = {
 }
 
 function config.getColors(beautiful)
-    if beautiful ~= nil then
-        colors.icon_color = beautiful.topBar_fg or colors.icon_color
-        colors.bg_popup = beautiful.tooltip_bg_color or colors.bg_popup
-        colors.fg_text = beautiful.tooltip_fg_color or colors.fg_text
+    -- Return a copy of colors with beautiful theme overrides
+    local c = {}
+    for k, v in pairs(colors) do
+        c[k] = v
     end
-    return colors
+    if beautiful ~= nil then
+        c.icon_color = beautiful.topBar_fg or c.icon_color
+        c.bg_popup = beautiful.tooltip_bg_color or c.bg_popup
+        c.fg_content = beautiful.tooltip_fg_color or c.fg_content
+        c.fg_header = beautiful.tooltip_fg_color or c.fg_header
+        c.fg_tab = beautiful.tooltip_fg_color or c.fg_tab
+        c.fg_pagination_button = beautiful.tooltip_fg_color or c.fg_pagination_button
+        c.fg_pagination_label = beautiful.tooltip_fg_color or c.fg_pagination_label
+    end
+    return c
 end
 
 function config.getFonts(beautiful)
