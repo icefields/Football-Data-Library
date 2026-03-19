@@ -171,6 +171,29 @@ local function getStandings(competitionCode, cacheFile)
     end
 end
 
+-- Fetch Champions League matches (all teams, with caching)
+local function getChampionsLeague(cacheFile)
+    ensureCacheLoaded(cacheFile)
+
+    if isCacheValid(cache.champions) then
+        return cache.champions.data
+    end
+
+    local success, result = pcall(function()
+        local app = getFootballApp()
+        return app.service:getLatestScores("CL", true)
+    end)
+
+    if success and result then
+        cache.champions.data = result
+        cache.champions.timestamp = os.time()
+        saveCacheToFile(cacheFile, cache)
+        return result
+    else
+        return nil, result
+    end
+end
+
 -- Create the match window widget
 -- @param args table - Widget configuration
 -- @return wibox.widget, table - The widget and controls table
@@ -218,7 +241,7 @@ function match_window.create(args)
     -- Button size from beautiful theme or config
     local buttonSize = beautiful.topBar_buttonSize or beautiful.wibar_height or sizes.button_size
 
-    -- Current tab: "scores" or "standings"
+    -- Current tab: "scores", "standings", or "champions"
     local currentTab = "scores"
 
     local button = wibox.widget {
