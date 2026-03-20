@@ -295,6 +295,7 @@ function config.getColors(beautiful)
         colors.fg_tab = beautiful.tooltip_fg_color or colors.fg_tab
         colors.fg_pagination_button = beautiful.tooltip_fg_color or colors.fg_pagination_button
         colors.fg_pagination_label = beautiful.tooltip_fg_color or colors.fg_pagination_label
+        colors.bg_pagination = beautiful.colour2.shade9 
     end
     return colors
 end
@@ -306,8 +307,8 @@ function config.getFonts(beautiful)
     -- Title font: fallback chain
     f.title = fonts.title or beautiful.labelFontSans or beautiful.tooltip_font or f.content
     -- Pagination fonts: fallback to content
-    f.pagination_button = fonts.pagination_button or beautiful.labelFontSans or f.content
-    f.pagination_label = fonts.pagination_label or beautiful.labelFontSans or f.content
+    f.pagination_button = fonts.pagination_button or beautiful.labelFontSansSmall or f.content
+    f.pagination_label = fonts.pagination_label or beautiful.labelFontSansSmall or f.content
     -- Icon font: fallback chain
     f.icon = fonts.icon or beautiful.topBar_button_font or beautiful.font
     -- Scale factor
