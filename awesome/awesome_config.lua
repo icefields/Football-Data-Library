@@ -93,6 +93,12 @@ local fonts = {
                           -- Falls back to beautiful.mainFont or content font
 
     -- ═══════════════════════════════════════════════════════════════════════
+    -- TAB FONTS (Results / Standings / Champions)
+    -- ═══════════════════════════════════════════════════════════════════════
+    tab = nil,              -- Font for tab labels ("Results", "Standings", "Champions")
+                            -- Falls back to beautiful.labelFontSansSmall or content font
+
+    -- ═══════════════════════════════════════════════════════════════════════
     -- PAGINATION FONTS (bottom bar)
     -- ═══════════════════════════════════════════════════════════════════════
     pagination_button = nil,  -- Font for "◀ Prev" and "Next ▶" buttons
@@ -306,6 +312,8 @@ function config.getFonts(beautiful)
     f.content = fonts.content or beautiful.font
     -- Title font: fallback chain
     f.title = fonts.title or beautiful.labelFontSans or beautiful.tooltip_font or f.content
+    -- Tab font: fallback chain
+    f.tab = fonts.tab or beautiful.labelFontSansSmall or f.content
     -- Pagination fonts: fallback to content
     f.pagination_button = fonts.pagination_button or beautiful.labelFontSansSmall or f.content
     f.pagination_label = fonts.pagination_label or beautiful.labelFontSansSmall or f.content
