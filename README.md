@@ -1051,10 +1051,10 @@ The widget uses JSON file caching to minimize API calls:
 
 **Force refresh:**
 - Close and reopen widget after cache timeout
-- Or invalidate cache programmatically:
+- Or change selector programmatically:
 
 ```lua
-controls.setTeamId(108)  -- This invalidates the matches cache
+controls.set_selector({ name = "Inter", code = "INTER", type = "team", team_id = 108 })
 ```
 
 ---
@@ -1134,14 +1134,26 @@ local football_widget, controls = match_window.create({
 - Switching between "Inter" and "Serie A" doesn't refetch if both are cached
 - Cache timeout: 5 minutes (configurable via `cache_timeout`)
 
-**Fetch modes (internal):**
+**Cache structure:**
+```json
+{
+  "results": {
+    "INTER": { "data": [...], "timestamp": 1234567890 },
+    "SA": { "data": [...], "timestamp": 1234567890 },
+    "PL": { "data": [...], "timestamp": 1234567890 }
+  },
+  "standings": {
+    "SA": { "data": [...], "timestamp": 1234567890 },
+    "PL": { "data": [...], "timestamp": 1234567890 }
+  },
+  "champions": { "data": [...], "timestamp": 1234567890 }
+}
+```
 
-| Mode | Command | Description |
-|------|---------|-------------|
-| `team` | `team <team_id> <count>` | Fetch matches for a specific team |
-| `competition` | `competition <code> <count>` | Fetch matches for a competition |
-| `standings` | `standings <code>` | Fetch standings for a competition |
-| `champions` | `champions <code> <count>` | Fetch Champions League matches |
+**Per-selector caching:**
+- Each selector option has its own cache entry
+- Switching between "Inter" and "Serie A" doesn't refetch if both are cached
+- Cache timeout: 5 minutes (configurable via `cache_timeout`)
 
 ---
 
@@ -1791,6 +1803,22 @@ Rate limit exceeded. Wait a minute and try again. Increase `RATE_LIMIT_DELAY` in
 Ensure the directory in `DATABASE_PATH` exists:
 ```bash
 mkdir -p $(dirname /path/to/your/database.db)
+```
+
+#### `Database error: disk I/O error`
+
+**This occurs when the database is on NFS (network filesystem).**
+
+SQLite WAL mode doesn't work on NFS due to file locking issues. The library uses DELETE journal mode by default (NFS-safe).
+
+If you see this error:
+1. Check if your database is on NFS: `df /path/to/database.db`
+2. If on NFS, ensure you're using the latest version of the library (DELETE mode)
+3. If issues persist, move the database to local storage:
+
+```bash
+# Update .env
+DATABASE_PATH=/home/youruser/.local/share/football/football_data.db
 ```
 
 ### Debug Mode
