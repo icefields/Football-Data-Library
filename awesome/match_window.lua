@@ -29,9 +29,10 @@ match_window.TEAMS = football_config.TEAMS
 match_window.COMPETITIONS = football_config.COMPETITIONS
 
 -- In-memory cache
+-- standings is now keyed by competition code: { ["SA"] = { data = ..., timestamp = ... }, ... }
 local cache = {
     matches = { data = nil, timestamp = 0 },
-    standings = { data = nil, timestamp = 0, competition = nil },
+    standings = {},  -- Per-competition cache
     champions = { data = nil, timestamp = 0 },
 }
 
@@ -45,7 +46,7 @@ local TAB_CONFIG = {
     standings = {
         cache_key = "standings",
         has_pagination = false,
-        fetch_mode = "team",
+        fetch_mode = "standings",  -- Fetches all competitions
     },
     champions = {
         cache_key = "champions",
@@ -80,10 +81,10 @@ local function loadCacheFromFile(cacheFile)
 end
 
 -- Save cache to file
-local function saveCacheToFile(cacheFile, data)
+local function saveCacheToFile(cacheFile, cacheData)
     local file = io.open(cacheFile, "w")
     if not file then return end
-    file:write(cjson.encode(data))
+    file:write(cjson.encode(cacheData))
     file:close()
 end
 
@@ -101,7 +102,20 @@ local function ensureCacheLoaded(cacheFile)
     local data = loadCacheFromFile(cacheFile)
     if data then
         if data.matches then cache.matches = data.matches end
-        if data.standings then cache.standings = data.standings end
+        if data.standings then 
+            -- Handle both old format (single) and new format (per-competition)
+            if data.standings.data then
+                -- Old format: convert to new format
+                local compCode = data.standings.competition or "SA"
+                cache.standings[compCode] = {
+                    data = data.standings.data,
+                    timestamp = data.standings.timestamp,
+                }
+            else
+                -- New format: standings is already keyed by competition
+                cache.standings = data.standings
+            end
+        end
         if data.champions then cache.champions = data.champions end
     end
 end
@@ -162,6 +176,17 @@ function match_window.create(args)
             return "Unknown tab", 0
         end
 
+        if tabId == "standings" then
+            -- Standings: use per-competition cache
+            local compCode = selector and selector.code or "SA"
+            local cacheData = cache.standings[compCode]
+            if not cacheData or not cacheData.data then
+                return cfg.strings.loading, 0
+            end
+            return View.getStandingsString(cacheData.data, selector and selector.name or "Serie A"), 0
+        end
+
+        -- Other tabs: use single cache
         local cacheData = cache[config.cache_key]
         if not cacheData or not cacheData.data then
             return cfg.strings.loading, 0
@@ -174,8 +199,6 @@ function match_window.create(args)
             local totalPages = math.ceil(totalMatches / matchesPerPage)
             local pageIndicator = string.format("\n\n─── Page %d/%d ───", page, totalPages)
             return formattedResults .. pageIndicator, totalMatches
-        elseif tabId == "standings" then
-            return View.getStandingsString(cacheData.data, selector and selector.name or "Serie A"), 0
         else
             local rawResults = View.getMatchesString(cacheData.data, true)
             return View.getFormattedResults(rawResults), 0
@@ -224,6 +247,13 @@ function match_window.create(args)
                 cfg.CHAMPIONS_LEAGUE_CODE,
                 cfg.defaults.champions_match_count
             )
+        elseif tabId == "standings" then
+            -- Fetch standings for ALL competitions
+            cmd = string.format(
+                "lua %s %s standings",
+                fetchScript,
+                cacheFile
+            )
         else
             cmd = string.format(
                 "lua %s %s %d %d %s",
@@ -262,8 +292,11 @@ function match_window.create(args)
             if data.matches and data.matches.data then
                 cache.matches = data.matches
             end
-            if data.standings and data.standings.data then
-                cache.standings = data.standings
+            if data.standings then
+                -- Merge standings (per-competition cache)
+                for compCode, compData in pairs(data.standings) do
+                    cache.standings[compCode] = compData
+                end
             end
 
             -- Save to file

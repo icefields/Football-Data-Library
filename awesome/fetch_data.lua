@@ -61,8 +61,33 @@ local success, err = pcall(function()
                 timestamp = os.time(),
             },
         }
+    elseif mode == "standings" then
+        -- Fetch standings for ALL competitions
+        -- Usage: lua fetch_data.lua <cache_file> standings
+        local competitions = {
+            { name = "Serie A", code = "SA" },
+            { name = "Premier League", code = "PL" },
+            { name = "La Liga", code = "PD" },
+            { name = "Bundesliga", code = "BL1" },
+            { name = "Champions League", code = "CL" },
+        }
+        
+        local standingsCache = {}
+        for _, comp in ipairs(competitions) do
+            local standings = app.service:getStandings(comp.code)
+            if standings then
+                standingsCache[comp.code] = {
+                    data = standings,
+                    timestamp = os.time(),
+                }
+            end
+        end
+        
+        result = {
+            standings = standingsCache,
+        }
     else
-        -- Fetch team matches and standings
+        -- Fetch team matches and standings for current competition
         local teamId = tonumber(arg[2]) or 108
         local matchCount = tonumber(arg[3]) or 10
         local competitionCode = arg[4] or "SA"
@@ -76,9 +101,10 @@ local success, err = pcall(function()
                 timestamp = os.time(),
             },
             standings = {
-                data = standings,
-                timestamp = os.time(),
-                competition = competitionCode,
+                [competitionCode] = {
+                    data = standings,
+                    timestamp = os.time(),
+                },
             },
         }
     end
