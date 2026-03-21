@@ -19,7 +19,6 @@ local FootballData = require("football")
 local View = require("football.view")
 local cjson = require("cjson")
 local football_config = require("awesome.football_config")
-local tabbed_window_config = require("awesome.tabbed_window_config")
 local tabbed_window = require("awesome.tabbed_window")
 
 local match_window = {}
@@ -49,7 +48,7 @@ local TAB_CONFIG = {
     standings = {
         cache_key = "standings",
         has_pagination = false,
-        fetch_mode = "standings",  -- Fetches all competitions
+        fetch_mode = "standings",  -- Fetches per-competition on demand
     },
     champions = {
         cache_key = "champions",
@@ -139,22 +138,9 @@ function match_window.create(args)
         error("match_window requires 'awful', 'beautiful', 'wibox', and 'gears' modules")
     end
 
-    -- Use merged config (football_config for data, tabbed_window_config for theming)
-    local cfg = args.config or setmetatable({
-        -- Football-specific config
-        TEAMS = football_config.TEAMS,
-        COMPETITIONS = football_config.COMPETITIONS,
-        CHAMPIONS_LEAGUE_CODE = football_config.CHAMPIONS_LEAGUE_CODE,
-        defaults = football_config.defaults,
-        paths = football_config.paths,
-        icons = football_config.icons,
-        strings = football_config.strings,
-        -- Theming config (merged)
-        getColors = function(beautiful) return tabbed_window_config.getColors(beautiful) end,
-        getFonts = function(beautiful) return tabbed_window_config.getFonts(beautiful) end,
-        getSizes = function(beautiful) return tabbed_window_config.getSizes(beautiful) end,
-        getPaddings = function() return tabbed_window_config.getPaddings() end,
-    }, { __index = tabbed_window_config })
+    -- Use football_config for data settings
+    -- tabbed_window handles its own theming via tabbed_window_config internally
+    local cfg = football_config
 
     -- Current competition for standings
     local currentCompetition = args.competitions and args.competitions[1] or cfg.COMPETITIONS[1]
@@ -291,7 +277,7 @@ function match_window.create(args)
             end
         end)
     end
-    
+
     -- Tab configuration for tabbed_window
     local tabs = {
         { id = "scores", label = cfg.strings.results, icon = cfg.icons.results, has_pagination = true },
@@ -309,7 +295,6 @@ function match_window.create(args)
             -- Fetch data for the new competition when selector changes
             fetchTabData("standings", item)
         end,
-        config = cfg,
         title_icon = cfg.icons.football,
         title_text = cfg.strings.title,
         awful = awful,

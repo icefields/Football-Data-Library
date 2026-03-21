@@ -6,11 +6,9 @@
 --   - Tab configuration (labels, icons, pagination flags)
 --   - Content provider function (returns text for each tab/page)
 --   - Optional selector configuration (for dropdown-like selectors)
---   - Config from tabbed_window_config for theming
 --
 -- Usage:
 --   local tabbed_window = require("awesome.tabbed_window")
---   local tabbed_window_config = require("awesome.tabbed_window_config")
 --   local widget, popup, controls = tabbed_window.create({
 --     tabs = {
 --       { id = "results", label = "Results", icon = "📊", has_pagination = true },
@@ -19,7 +17,6 @@
 --     content_provider = function(tab_id, page, selector)
 --       return "Content here...", 100
 --     end,
---     config = tabbed_window_config,
 --     title_icon = "󰒸",
 --     title_text = "My Widget",
 --     awful = awful,
@@ -40,6 +37,7 @@
 --   controls.get_state() - returns { tab, page, selector }
 --   controls.destroy() - cleanup signal handlers
 
+local tabbed_window_config = require("awesome.tabbed_window_config")
 local tabbed_window = {}
 
 -- Create a tabbed window widget
@@ -48,7 +46,8 @@ local tabbed_window = {}
 --   args.content_provider = function(tab_id, page) -> string, total_items
 --   args.selector_items = {{ name, code }, ...} or nil (for selector dropdown)
 --   args.on_selector_change = function(item) ... or nil
---   args.config = tabbed_window_config table
+--   args.title_icon = icon string (optional)
+--   args.title_text = title string (optional)
 --   args.awful, args.beautiful, args.wibox, args.gears = required modules
 -- @return widget, popup, controls table
 function tabbed_window.create(args)
@@ -64,11 +63,8 @@ function tabbed_window.create(args)
         error("tabbed_window requires 'awful', 'beautiful', 'wibox', and 'gears' modules")
     end
 
-    -- Config
-    local cfg = args.config
-    if not cfg then
-        error("tabbed_window requires 'config' (from tabbed_window_config)")
-    end
+    -- Theming config (internal - callers don't need to know about this)
+    local cfg = tabbed_window_config
 
     -- Get config sections
     local colors = cfg.getColors(beautiful)
@@ -95,7 +91,7 @@ function tabbed_window.create(args)
     -- Current state
     local currentTab = tabs[1].id
     local currentPage = 1
-    local itemsPerPage = cfg.defaults and cfg.defaults.matches_per_page or 10
+    local itemsPerPage = 10  -- Default, can be overridden per tab via content_provider
 
     -- Content provider
     local contentProvider = args.content_provider
@@ -122,7 +118,7 @@ function tabbed_window.create(args)
     local selectorContainer = nil
     local selectorButtons = nil
     local tabWidgets = {}
-    
+
     -- Signal handlers for cleanup (prevents memory leaks)
     local tabEnterHandlers = {}
     local tabLeaveHandlers = {}
@@ -149,7 +145,7 @@ function tabbed_window.create(args)
                 c.bg = colors.tab_inactive
             end
         end
-        
+
         tabWidgets[tab.id] = wibox.widget {
             {
                 id = "label",
@@ -210,7 +206,7 @@ function tabbed_window.create(args)
     -- Content text widget
     contentText = wibox.widget {
         id = "content",
-        text = cfg.strings and cfg.strings.loading or "Loading...",
+        text = "Loading...",  -- Default loading text, caller can override via content_provider
         widget = wibox.widget.textbox,
         font = contentFont,
     }
@@ -234,7 +230,7 @@ function tabbed_window.create(args)
                     c.bg = colors.tab_inactive
                 end
             end
-            
+
             local btn = wibox.widget {
                 {
                     text = item.name,
@@ -276,9 +272,9 @@ function tabbed_window.create(args)
     -- Update content based on current tab
     updateContent = function()
         local content, totalItems = contentProvider(currentTab, currentPage, currentSelectorItem)
-        
+
         if not content then
-            contentText.text = cfg.strings and cfg.strings.loading or "Loading..."
+            contentText.text = "Loading..."
             if paginationContainer then paginationContainer.visible = false end
             return
         end
@@ -395,7 +391,7 @@ function tabbed_window.create(args)
                                 nil,
                                 {
                                     id = "closeBtn",
-                                    text = cfg.icons and cfg.icons.close or "✕",
+                                    text = "✕",  -- Close button (caller can customize via title_text if needed)
                                     widget = wibox.widget.textbox,
                                     font = titleFont,
                                     align = "center",
@@ -610,7 +606,7 @@ function tabbed_window.create(args)
             -- Disconnect signal handlers from button
             button:disconnect_signal("mouse::enter", buttonEnterHandler)
             button:disconnect_signal("mouse::leave", buttonLeaveHandler)
-            
+
             -- Disconnect signal handlers from tab widgets
             for _, tab in ipairs(tabs) do
                 if tabWidgets[tab.id] then
@@ -618,7 +614,7 @@ function tabbed_window.create(args)
                     tabWidgets[tab.id]:disconnect_signal("mouse::leave", tabLeaveHandlers[tab.id])
                 end
             end
-            
+
             -- Disconnect signal handlers from selector buttons
             if selectorItems and selectorButtonHandlers then
                 for i, child in ipairs(selectorButtons.children or {}) do
@@ -630,7 +626,7 @@ function tabbed_window.create(args)
                     end
                 end
             end
-            
+
             -- Clear references
             tabWidgets = {}
             tabEnterHandlers = {}
