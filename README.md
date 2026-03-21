@@ -767,12 +767,14 @@ print(text)
 
 ### Match Window Widget (Recommended)
 
-The library includes a full-featured popup widget with tabs, pagination, and competition switching.
+The library includes a full-featured popup widget with tabs, pagination, and selectors.
 
 **Features:**
 - Three tabs: Results, Standings, Champions League
+- **Results tab selector**: Switch between Inter matches (team) or competition matches (Serie A, Premier League, La Liga, etc.)
+- **Standings tab selector**: Switch between competitions (Serie A, Premier League, etc.)
 - Pagination for Results and Champions League (10 matches per page)
-- Competition selector for Standings tab (switch between Serie A, Premier League, etc.)
+- Per-tab selector state (remembers your choice when switching tabs)
 - JSON file caching (5-minute timeout, no API calls on reload)
 - Beautiful theme color integration
 - Auto-refresh timer (configurable)
@@ -1057,18 +1059,32 @@ controls.setTeamId(108)  -- This invalidates the matches cache
 
 ---
 
-### Competition Selector
+### Tab Selectors
 
-The Standings tab has a competition selector to switch between leagues.
+Both Results and Standings tabs have selectors for switching data views.
 
-**Default competitions:**
-- Serie A (SA)
-- Premier League (PL)
-- La Liga (PD)
-- Bundesliga (BL1)
-- Champions League (CL)
+**Results tab selector:**
+- **Inter** - Shows Inter Milan's recent matches (team-specific)
+- **Serie A, Premier League, La Liga, etc.** - Shows all matches from that competition
 
-**Customize competitions:**
+**Standings tab selector:**
+- **Serie A, Premier League, La Liga, etc.** - Shows standings for that competition
+
+**Customize Results selectors:**
+
+```lua
+local football_widget, controls = match_window.create({
+    -- ...
+    results_selectors = {
+        { name = "Inter", code = "INTER", type = "team", team_id = 108 },
+        { name = "Serie A", code = "SA", type = "competition" },
+        { name = "Premier League", code = "PL", type = "competition" },
+        -- Add more teams or competitions as needed
+    },
+})
+```
+
+**Customize Standings competitions:**
 
 ```lua
 local football_widget, controls = match_window.create({
@@ -1076,10 +1092,15 @@ local football_widget, controls = match_window.create({
     competitions = {
         { name = "Serie A", code = "SA" },
         { name = "Premier League", code = "PL" },
-        { name = "Ligue 1", code = "FL1" },  -- Add/remove as needed
+        { name = "Ligue 1", code = "FL1" },
     },
 })
 ```
+
+**Selector state persistence:**
+- Each tab remembers its selector choice independently
+- Switching tabs preserves your selections
+- Data is fetched on-demand when changing selectors
 
 ---
 
