@@ -274,7 +274,7 @@ function tabbed_window.create(args)
     end
 
     -- Update content based on current tab
-    local function updateContent()
+    updateContent = function()
         local content, totalItems = contentProvider(currentTab, currentPage, currentSelectorItem)
         
         if not content then
@@ -308,7 +308,7 @@ function tabbed_window.create(args)
     end
 
     -- Set active tab
-    local function setActiveTab(tabId)
+    setActiveTab = function(tabId)
         currentTab = tabId
         currentPage = 1
 
