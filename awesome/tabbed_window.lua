@@ -332,7 +332,7 @@ function tabbed_window.create(args)
     local tabBar = wibox.widget {
         {
             {
-                table.unpack(tabBarChildren),
+                unpack(tabBarChildren),
                 layout = wibox.layout.fixed.horizontal,
                 spacing = 4,
             },
