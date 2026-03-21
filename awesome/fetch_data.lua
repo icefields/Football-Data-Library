@@ -62,15 +62,24 @@ local success, err = pcall(function()
             },
         }
     elseif mode == "standings" then
-        -- Fetch standings for ALL competitions
-        -- Usage: lua fetch_data.lua <cache_file> standings
-        local competitions = {
-            { name = "Serie A", code = "SA" },
-            { name = "Premier League", code = "PL" },
-            { name = "La Liga", code = "PD" },
-            { name = "Bundesliga", code = "BL1" },
-            { name = "Champions League", code = "CL" },
-        }
+        -- Fetch standings for one or all competitions
+        -- Usage: 
+        --   lua fetch_data.lua <cache_file> standings          (all competitions)
+        --   lua fetch_data.lua <cache_file> standings SA       (single competition)
+        local singleComp = arg[3]
+        
+        local competitions
+        if singleComp then
+            competitions = { { name = singleComp, code = singleComp } }
+        else
+            competitions = {
+                { name = "Serie A", code = "SA" },
+                { name = "Premier League", code = "PL" },
+                { name = "La Liga", code = "PD" },
+                { name = "Bundesliga", code = "BL1" },
+                { name = "Champions League", code = "CL" },
+            }
+        end
         
         local standingsCache = {}
         for _, comp in ipairs(competitions) do

@@ -246,26 +246,27 @@ function tabbed_window.create(args)
                 bg = item.code == currentSelectorItem.code and colors.tab_active or colors.tab_inactive,
                 fg = colors.fg_tab,
                 widget = wibox.container.background,
-                forced_width = sizes.competition_btn_width,
-                forced_height = sizes.competition_btn_height,
-                buttons = gears.table.join(
-                    awful.button({}, 1, function()
-                        currentSelectorItem = item
-                        -- Update button highlights
-                        for _, b in ipairs(selectorButtons.children) do
-                            b.bg = colors.tab_inactive
-                        end
-                        btn.bg = colors.tab_active
-                        -- Callback
-                        if onSelectorChange then
-                            onSelectorChange(item)
-                        end
-                        -- Refresh content
-                        currentPage = 1
-                        updateContent()
-                    end)
-                ),
+                forced_width = sizes.selector_btn_width,
+                forced_height = sizes.selector_btn_height,
             }
+            -- Button click handler (separate to avoid 'btn' reference inside its own definition)
+            btn:buttons(gears.table.join(
+                awful.button({}, 1, function()
+                    currentSelectorItem = item
+                    -- Update button highlights
+                    for _, b in ipairs(selectorButtons.children) do
+                        b.bg = colors.tab_inactive
+                    end
+                    btn.bg = colors.tab_active
+                    -- Callback
+                    if onSelectorChange then
+                        onSelectorChange(item)
+                    end
+                    -- Refresh content
+                    currentPage = 1
+                    updateContent()
+                end)
+            ))
             btn:connect_signal("mouse::enter", selectorButtonHandlers.enter[i])
             btn:connect_signal("mouse::leave", selectorButtonHandlers.leave[i])
             selectorButtons:add(btn)

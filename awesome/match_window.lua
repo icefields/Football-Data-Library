@@ -36,6 +36,9 @@ local cache = {
     champions = { data = nil, timestamp = 0 },
 }
 
+-- Track fetch progress per tab
+local fetchInProgress = {}
+
 -- Tab configuration
 local TAB_CONFIG = {
     scores = {
@@ -204,40 +207,12 @@ function match_window.create(args)
             return View.getFormattedResults(rawResults), 0
         end
     end
-
-    -- Tab configuration for tabbed_window
-    local tabs = {
-        { id = "scores", label = cfg.strings.results, icon = cfg.icons.results, has_pagination = true },
-        { id = "standings", label = cfg.strings.standings, icon = cfg.icons.standings, has_pagination = false, has_selector = true },
-        { id = "champions", label = cfg.strings.champions, icon = cfg.icons.champions, has_pagination = true },
-    }
-
-    -- Create the tabbed window
-    local centeredButton, popup, controls = tabbed_window.create({
-        tabs = tabs,
-        content_provider = contentProvider,
-        selector_items = args.competitions or cfg.COMPETITIONS,
-        on_selector_change = function(item)
-            currentCompetition = item
-        end,
-        config = cfg,
-        title_icon = cfg.icons.football,
-        title_text = cfg.strings.title,
-        awful = awful,
-        beautiful = beautiful,
-        wibox = wibox,
-        gears = gears,
-    })
-
-    -- Override the content provider to fetch data asynchronously
-    local originalRefresh = controls.refresh
-    local fetchInProgress = {}
-
-    local function fetchContent(tabId, page)
+    
+    -- Fetch data for a specific tab (on demand)
+    local function fetchTabData(tabId, selector)
         if fetchInProgress[tabId] then return end
         fetchInProgress[tabId] = true
 
-        -- Build command for async fetch
         local cmd
         if tabId == "champions" then
             cmd = string.format(
@@ -248,13 +223,16 @@ function match_window.create(args)
                 cfg.defaults.champions_match_count
             )
         elseif tabId == "standings" then
-            -- Fetch standings for ALL competitions
+            -- Fetch standings for specific competition
+            local compCode = selector and selector.code or "SA"
             cmd = string.format(
-                "lua %s %s standings",
+                "lua %s %s standings %s",
                 fetchScript,
-                cacheFile
+                cacheFile,
+                compCode
             )
         else
+            -- Scores tab
             cmd = string.format(
                 "lua %s %s %d %d %s",
                 fetchScript,
@@ -269,11 +247,6 @@ function match_window.create(args)
             fetchInProgress[tabId] = nil
 
             if exitcode ~= 0 then
-                -- Error - show cached data with error
-                local config = TAB_CONFIG[tabId]
-                if config and cache[config.cache_key] and cache[config.cache_key].data then
-                    -- Could update content with error message here
-                end
                 return
             end
 
@@ -293,9 +266,16 @@ function match_window.create(args)
                 cache.matches = data.matches
             end
             if data.standings then
-                -- Merge standings (per-competition cache)
-                for compCode, compData in pairs(data.standings) do
-                    cache.standings[compCode] = compData
+                -- Could be single competition or all
+                if data.standings.data then
+                    -- Single competition format
+                    local compCode = data.standings.competition or "SA"
+                    cache.standings[compCode] = data.standings
+                else
+                    -- Per-competition format
+                    for compCode, compData in pairs(data.standings) do
+                        cache.standings[compCode] = compData
+                    end
                 end
             end
 
@@ -303,48 +283,44 @@ function match_window.create(args)
             saveCacheToFile(cacheFile, cache)
 
             -- Refresh display
-            originalRefresh()
+            updateContent()
         end)
     end
 
-    -- Enhanced refresh that checks cache validity
-    controls.refresh = function()
-        local config = TAB_CONFIG[controls.get_state().tab]
-        if config then
-            local cacheEntry = cache[config.cache_key]
-            if not isCacheValid(cacheEntry) then
-                fetchContent(controls.get_state().tab, controls.get_state().page)
-            end
-        end
-        originalRefresh()
-    end
+    -- Tab configuration for tabbed_window
+    local tabs = {
+        { id = "scores", label = cfg.strings.results, icon = cfg.icons.results, has_pagination = true },
+        { id = "standings", label = cfg.strings.standings, icon = cfg.icons.standings, has_pagination = false, has_selector = true },
+        { id = "champions", label = cfg.strings.champions, icon = cfg.icons.champions, has_pagination = true },
+    }
 
-    -- Enhanced show that triggers fetch if needed
+    -- Create the tabbed window
+    local centeredButton, popup, controls = tabbed_window.create({
+        tabs = tabs,
+        content_provider = contentProvider,
+        selector_items = args.competitions or cfg.COMPETITIONS,
+        on_selector_change = function(item)
+            currentCompetition = item
+            -- Fetch data for the new competition when selector changes
+            if controls.get_state().tab == "standings" then
+                fetchTabData("standings", item)
+            end
+        end,
+        config = cfg,
+        title_icon = cfg.icons.football,
+        title_text = cfg.strings.title,
+        awful = awful,
+        beautiful = beautiful,
+        wibox = wibox,
+        gears = gears,
+    })
+
+    -- Wire up tab changes to fetch data on demand
     local originalShow = controls.show
     controls.show = function()
         originalShow()
-        local config = TAB_CONFIG[controls.get_state().tab]
-        if config then
-            local cacheEntry = cache[config.cache_key]
-            if not cacheEntry or not cacheEntry.data or not isCacheValid(cacheEntry) then
-                fetchContent(controls.get_state().tab, 1)
-            end
-        end
-    end
-
-    -- Enhanced toggle that triggers fetch if needed
-    local originalToggle = controls.toggle
-    controls.toggle = function()
-        originalToggle()
-        if popup.visible then
-            local config = TAB_CONFIG[controls.get_state().tab]
-            if config then
-                local cacheEntry = cache[config.cache_key]
-                if not cacheEntry or not cacheEntry.data or not isCacheValid(cacheEntry) then
-                    fetchContent(controls.get_state().tab, 1)
-                end
-            end
-        end
+        local state = controls.get_state()
+        fetchTabData(state.tab, state.selector)
     end
 
     return centeredButton, controls
