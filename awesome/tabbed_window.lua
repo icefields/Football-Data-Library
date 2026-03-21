@@ -108,13 +108,34 @@ function tabbed_window.create(args)
     local selectorContainer = nil
     local selectorButtons = nil
     local tabWidgets = {}
+    
+    -- Signal handlers for cleanup (prevents memory leaks)
+    local tabEnterHandlers = {}
+    local tabLeaveHandlers = {}
+    local buttonEnterHandler = nil
+    local buttonLeaveHandler = nil
+    local selectorButtonHandlers = { enter = {}, leave = {} }
 
     -- Forward declaration for updateContent and setActiveTab (needed for closures)
     local updateContent = nil
     local setActiveTab = nil
 
     -- Build tab widgets
+    -- Store signal handlers for cleanup (prevents memory leaks)
+    local tabEnterHandlers = {}
+    local tabLeaveHandlers = {}
     for i, tab in ipairs(tabs) do
+        tabEnterHandlers[tab.id] = function(c)
+            c.bg = colors.tab_hover
+        end
+        tabLeaveHandlers[tab.id] = function(c)
+            if currentTab == tab.id then
+                c.bg = colors.tab_active
+            else
+                c.bg = colors.tab_inactive
+            end
+        end
+        
         tabWidgets[tab.id] = wibox.widget {
             {
                 id = "label",
@@ -187,7 +208,19 @@ function tabbed_window.create(args)
     }
 
     if selectorItems then
-        for _, item in ipairs(selectorItems) do
+        for i, item in ipairs(selectorItems) do
+            -- Store handlers for cleanup
+            selectorButtonHandlers.enter[i] = function(c)
+                c.bg = colors.tab_hover
+            end
+            selectorButtonHandlers.leave[i] = function(c)
+                if currentSelectorItem and currentSelectorItem.code == item.code then
+                    c.bg = colors.tab_active
+                else
+                    c.bg = colors.tab_inactive
+                end
+            end
+            
             local btn = wibox.widget {
                 {
                     text = item.name,
@@ -219,16 +252,8 @@ function tabbed_window.create(args)
                     end)
                 ),
             }
-            btn:connect_signal("mouse::enter", function(c)
-                c.bg = colors.tab_hover
-            end)
-            btn:connect_signal("mouse::leave", function(c)
-                if currentSelectorItem and currentSelectorItem.code == item.code then
-                    c.bg = colors.tab_active
-                else
-                    c.bg = colors.tab_inactive
-                end
-            end)
+            btn:connect_signal("mouse::enter", selectorButtonHandlers.enter[i])
+            btn:connect_signal("mouse::leave", selectorButtonHandlers.leave[i])
             selectorButtons:add(btn)
         end
     end
@@ -314,21 +339,17 @@ function tabbed_window.create(args)
                     setActiveTab(tab.id)
                 end)
             ))
-            tabWidgets[tab.id]:connect_signal("mouse::enter", function(c)
-                c.bg = colors.tab_hover
-            end)
-            tabWidgets[tab.id]:connect_signal("mouse::leave", function(c)
-                if currentTab == tab.id then
-                    c.bg = colors.tab_active
-                else
-                    c.bg = colors.tab_inactive
-                end
-            end)
+            tabWidgets[tab.id]:connect_signal("mouse::enter", tabEnterHandlers[tab.id])
+            tabWidgets[tab.id]:connect_signal("mouse::leave", tabLeaveHandlers[tab.id])
         end
     end
 
-    -- Build tab bar widget (inline in popup structure like original)
-    -- Note: Football widget always has 3 tabs (scores, standings, champions)
+    -- Build tab bar layout dynamically (supports any number of tabs)
+    local tabBarLayout = wibox.layout.fixed.horizontal()
+    tabBarLayout.spacing = 4
+    for _, tab in ipairs(tabs) do
+        tabBarLayout:add(tabWidgets[tab.id])
+    end
 
     -- Create popup
     popup = awful.popup {
@@ -383,19 +404,9 @@ function tabbed_window.create(args)
                     },
                     -- Tab bar
                     {
-                        {
-                            {
-                                tabWidgets[tabs[1].id],
-                                tabWidgets[tabs[2].id],
-                                tabWidgets[tabs[3].id],
-                                layout = wibox.layout.fixed.horizontal,
-                                spacing = 4,
-                            },
-                            widget = wibox.container.margin,
-                            margins = paddings.tab_bar,
-                        },
-                        widget = wibox.container.background,
-                        bg = colors.bg_tab_bar,
+                        tabBarLayout,
+                        widget = wibox.container.margin,
+                        margins = paddings.tab_bar,
                     },
                     -- Selector (optional)
                     {
@@ -525,13 +536,15 @@ function tabbed_window.create(args)
         end)
     ))
 
-    -- Hover effects
-    button:connect_signal("mouse::enter", function(c)
+    -- Hover effects (store handlers for cleanup)
+    buttonEnterHandler = function(c)
         c.bg = colors.icon_hover
-    end)
-    button:connect_signal("mouse::leave", function(c)
+    end
+    buttonLeaveHandler = function(c)
         c.bg = colors.bg_button
-    end)
+    end
+    button:connect_signal("mouse::enter", buttonEnterHandler)
+    button:connect_signal("mouse::leave", buttonLeaveHandler)
 
     -- Controls table returned to caller
     local controls = {
@@ -576,6 +589,38 @@ function tabbed_window.create(args)
                 page = currentPage,
                 selector = currentSelectorItem,
             }
+        end,
+        -- Cleanup (call before removing widget to prevent memory leaks)
+        destroy = function()
+            -- Disconnect signal handlers from button
+            button:disconnect_signal("mouse::enter", buttonEnterHandler)
+            button:disconnect_signal("mouse::leave", buttonLeaveHandler)
+            
+            -- Disconnect signal handlers from tab widgets
+            for _, tab in ipairs(tabs) do
+                if tabWidgets[tab.id] then
+                    tabWidgets[tab.id]:disconnect_signal("mouse::enter", tabEnterHandlers[tab.id])
+                    tabWidgets[tab.id]:disconnect_signal("mouse::leave", tabLeaveHandlers[tab.id])
+                end
+            end
+            
+            -- Disconnect signal handlers from selector buttons
+            if selectorItems and selectorButtonHandlers then
+                for i, child in ipairs(selectorButtons.children or {}) do
+                    if selectorButtonHandlers.enter[i] then
+                        child:disconnect_signal("mouse::enter", selectorButtonHandlers.enter[i])
+                    end
+                    if selectorButtonHandlers.leave[i] then
+                        child:disconnect_signal("mouse::leave", selectorButtonHandlers.leave[i])
+                    end
+                end
+            end
+            
+            -- Clear references
+            tabWidgets = {}
+            tabEnterHandlers = {}
+            tabLeaveHandlers = {}
+            selectorButtons = nil
         end,
     }
 
