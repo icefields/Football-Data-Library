@@ -323,24 +323,8 @@ function tabbed_window.create(args)
         end
     end
 
-    -- Build tab bar widget
+    -- Build tab bar widget (inline in popup structure like original)
     -- Note: Football widget always has 3 tabs (scores, standings, champions)
-    -- We build the tab bar with explicit children for LuaJIT compatibility
-    local tabBar = wibox.widget {
-        {
-            {
-                tabWidgets[tabs[1].id],
-                tabWidgets[tabs[2].id],
-                tabWidgets[tabs[3].id],
-                layout = wibox.layout.fixed.horizontal,
-                spacing = 4,
-            },
-            widget = wibox.container.margin,
-            margins = paddings.tab_bar,
-        },
-        widget = wibox.container.background,
-        bg = colors.bg_tab_bar,
-    }
 
     -- Create popup
     popup = awful.popup {
@@ -392,8 +376,18 @@ function tabbed_window.create(args)
                     fg = colors.fg_header,
                     widget = wibox.container.background,
                 },
-                -- Tab bar
-                tabBar,
+                -- Tab bar (inline like original)
+                {
+                    {
+                        tabWidgets[tabs[1].id],
+                        tabWidgets[tabs[2].id],
+                        tabWidgets[tabs[3].id],
+                        layout = wibox.layout.fixed.horizontal,
+                        spacing = 4,
+                    },
+                    widget = wibox.container.margin,
+                    margins = paddings.tab_bar,
+                },
                 -- Selector (optional)
                 {
                     id = "competitionContainer",
