@@ -364,13 +364,12 @@ function match_window.create(args)
         tabs = tabs,
         content_provider = contentProvider,
         selector_items = selectorItemsMap,  -- Per-tab selectors
-        on_selector_change = function(item)
+        on_selector_change = function(item, tabId)
             -- Handle selector change based on current tab
-            local state = controls.get_state()
-            if state.tab == "standings" then
+            if tabId == "standings" then
                 currentCompetition = item
                 fetchTabData("standings", item)
-            elseif state.tab == "scores" then
+            elseif tabId == "scores" then
                 fetchTabData("scores", item)
             end
         end,

@@ -289,9 +289,9 @@ function tabbed_window.create(args)
                     currentSelector[currentTab] = item
                     -- Rebuild buttons to update highlights
                     rebuildSelectorButtons()
-                    -- Callback
+                    -- Callback - pass item and currentTab
                     if onSelectorChange then
-                        onSelectorChange(item)
+                        onSelectorChange(item, currentTab)
                     end
                     -- Refresh content
                     currentPage = 1
