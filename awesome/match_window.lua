@@ -312,6 +312,14 @@ function match_window.create(args)
         awful.spawn.easy_async(cmd, function(stdout, stderr, exitreason, exitcode)
             fetchInProgress[tabId] = nil
 
+            -- Debug: log the command and result
+            local debugFile = io.open("/tmp/football_debug.log", "a")
+            if debugFile then
+                debugFile:write(string.format("\n[%s] CMD: %s\n", os.date("%Y-%m-%d %H:%M:%S"), cmd))
+                debugFile:write(string.format("EXIT: %d, STDERR: %s\n", exitcode, stderr or "none"))
+                debugFile:close()
+            end
+
             if exitcode ~= 0 then
                 -- Show error message instead of hanging
                 if tabId == "scores" then
