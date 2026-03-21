@@ -1077,9 +1077,9 @@ local football_widget, controls = match_window.create({
     -- ...
     results_selectors = {
         { name = "Inter", code = "INTER", type = "team", team_id = 108 },
+        { name = "Milan", code = "MILAN", type = "team", team_id = 98 },
         { name = "Serie A", code = "SA", type = "competition" },
         { name = "Premier League", code = "PL", type = "competition" },
-        -- Add more teams or competitions as needed
     },
 })
 ```
@@ -1101,6 +1101,145 @@ local football_widget, controls = match_window.create({
 - Each tab remembers its selector choice independently
 - Switching tabs preserves your selections
 - Data is fetched on-demand when changing selectors
+
+---
+
+### Data Fetching and Caching
+
+**How data flows:**
+
+1. **Widget opens** → Load cache from `~/.cache/football_data.json`
+2. **Cache valid?** → Show cached data immediately
+3. **Cache expired?** → Fetch fresh data in background
+4. **User changes selector** → Fetch data for that selection
+
+**Cache structure:**
+```json
+{
+  "results": {
+    "INTER": { "data": [...], "timestamp": 1234567890 },
+    "SA": { "data": [...], "timestamp": 1234567890 },
+    "PL": { "data": [...], "timestamp": 1234567890 }
+  },
+  "standings": {
+    "SA": { "data": [...], "timestamp": 1234567890 },
+    "PL": { "data": [...], "timestamp": 1234567890 }
+  },
+  "champions": { "data": [...], "timestamp": 1234567890 }
+}
+```
+
+**Per-selector caching:**
+- Each selector option has its own cache entry
+- Switching between "Inter" and "Serie A" doesn't refetch if both are cached
+- Cache timeout: 5 minutes (configurable via `cache_timeout`)
+
+**Fetch modes (internal):**
+
+| Mode | Command | Description |
+|------|---------|-------------|
+| `team` | `team <team_id> <count>` | Fetch matches for a specific team |
+| `competition` | `competition <code> <count>` | Fetch matches for a competition |
+| `standings` | `standings <code>` | Fetch standings for a competition |
+| `champions` | `champions <code> <count>` | Fetch Champions League matches |
+
+---
+
+### Callbacks
+
+**`on_selector_change(item, tabId)`**
+
+Called when user clicks a selector button.
+
+```lua
+local football_widget, controls = match_window.create({
+    -- ...
+    on_selector_change = function(item, tabId)
+        -- item = { name = "Serie A", code = "SA", type = "competition" }
+        -- tabId = "standings" or "scores"
+        print("User selected:", item.name, "on tab:", tabId)
+    end,
+})
+```
+
+**`content_provider(tabId, page, selector)`**
+
+Called to render content for each tab/page/selector combination.
+
+```lua
+local football_widget, controls = match_window.create({
+    -- ...
+    content_provider = function(tabId, page, selector)
+        -- tabId = "scores", "standings", or "champions"
+        -- page = current page number (for pagination)
+        -- selector = { name = "Serie A", code = "SA", ... } or nil
+        
+        if tabId == "standings" then
+            local standings = getStandings(selector.code)
+            return formatStandings(standings), 0
+        elseif tabId == "scores" then
+            local matches = getMatches(selector.code, page)
+            return formatMatches(matches), #matches
+        end
+    end,
+})
+```
+
+---
+
+### Controls API
+
+The `controls` table returned by `match_window.create()` provides methods for programmatic control:
+
+```lua
+local football_widget, controls = match_window.create({...})
+
+-- Show/hide the popup
+controls.show()
+controls.hide()
+controls.toggle()
+
+-- Get current state
+local state = controls.get_state()
+-- Returns: { tab = "standings", page = 1, selector = { name = "Serie A", code = "SA" } }
+
+-- Switch tabs programmatically
+controls.set_tab("standings")
+
+-- Change selector programmatically
+controls.set_selector({ name = "Premier League", code = "PL" })
+
+-- Change page (for paginated tabs)
+controls.set_page(2)
+
+-- Refresh content (refetch from API)
+controls.refresh()
+```
+
+---
+
+### Lifecycle
+
+1. **Widget creation** (`match_window.create()`)
+   - Initialize in-memory cache
+   - Load persisted cache from disk
+   - Build UI widgets
+   - Return widget and controls
+
+2. **First open** (`controls.show()`)
+   - Build selector buttons for current tab
+   - Call `content_provider()` with cached data
+   - Fetch fresh data if cache expired
+
+3. **User interaction**
+   - Click tab → `setActiveTab()` → rebuild selectors if needed → fetch data
+   - Click selector → `on_selector_change()` → fetch data for new selection
+   - Click pagination → `updateContent()` with new page
+
+4. **Cache persistence**
+   - Save to disk after each successful fetch
+   - Load from disk on widget creation
+   - Legacy format auto-migrated to new format
 
 ---
 
