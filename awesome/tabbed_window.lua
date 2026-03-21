@@ -48,7 +48,7 @@ local tabbed_window = {}
 --   args.content_provider = function(tab_id, page) -> string, total_items
 --   args.selector_items = {{ name, code }, ...} or nil (for selector dropdown)
 --   args.on_selector_change = function(item) ... or nil
---   args.config = awesome_config table
+--   args.config = tabbed_window_config table
 --   args.awful, args.beautiful, args.wibox, args.gears = required modules
 -- @return widget, popup, controls table
 function tabbed_window.create(args)
@@ -67,7 +67,7 @@ function tabbed_window.create(args)
     -- Config
     local cfg = args.config
     if not cfg then
-        error("tabbed_window requires 'config' (from awesome_config)")
+        error("tabbed_window requires 'config' (from tabbed_window_config)")
     end
 
     -- Get config sections
