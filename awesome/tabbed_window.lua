@@ -6,25 +6,48 @@
 --   - Tab configuration (labels, icons, pagination flags)
 --   - Content provider function (returns text for each tab/page)
 --   - Optional selector configuration (for dropdown-like selectors)
---   - Config from awesome_config for theming
+--   - Optional config for theming (falls back to beautiful + defaults)
 --
--- Usage:
+-- Usage (with config):
 --   local tabbed_window = require("awesome.tabbed_window")
 --   local widget, popup, controls = tabbed_window.create({
 --     tabs = {
 --       { id = "results", label = "Results", icon = "📊", has_pagination = true },
 --       { id = "standings", label = "Standings", icon = "🏆", has_pagination = false },
 --     },
---     content_provider = function(tab_id, page)
---       -- Return content string and total items
+--     content_provider = function(tab_id, page, selector)
 --       return "Match results here...", 100
 --     end,
---     config = awesome_config,
+--     config = awesome_config,  -- optional, uses beautiful + defaults if omitted
 --     awful = awful,
 --     beautiful = beautiful,
 --     wibox = wibox,
 --     gears = gears,
 --   })
+--
+-- Usage (standalone, no config):
+--   local widget, popup, controls = tabbed_window.create({
+--     tabs = { { id = "tab1", label = "Tab 1" } },
+--     content_provider = function(tab_id, page) return "Content", 0 end,
+--     title_icon = "󰒸",
+--     title_text = "My Widget",
+--     awful = awful,
+--     beautiful = beautiful,
+--     wibox = wibox,
+--     gears = gears,
+--   })
+--
+-- Controls returned:
+--   controls.popup - the popup widget
+--   controls.show() - show popup
+--   controls.hide() - hide popup
+--   controls.toggle() - toggle popup
+--   controls.refresh() - refresh content
+--   controls.set_tab(id) - switch tabs
+--   controls.set_selector(item) - change selector
+--   controls.set_page(n) - change page
+--   controls.get_state() - returns { tab, page, selector }
+--   controls.destroy() - cleanup signal handlers (call before removing widget)
 
 local tabbed_window = {}
 
@@ -50,27 +73,97 @@ function tabbed_window.create(args)
         error("tabbed_window requires 'awful', 'beautiful', 'wibox', and 'gears' modules")
     end
 
-    -- Config
-    local cfg = args.config
-    if not cfg then
-        error("tabbed_window requires 'config' (from awesome_config)")
+    -- Config (optional - provides fallback defaults for standalone use)
+    local cfg = args.config or {}
+
+    -- Helper to get config value with fallback
+    local function getCfg(path, default)
+        local parts = {}
+        for part in path:gmatch("[^%.]+") do
+            table.insert(parts, part)
+        end
+        local value = cfg
+        for _, part in ipairs(parts) do
+            if type(value) ~= "table" then return default end
+            value = value[part]
+            if value == nil then return default end
+        end
+        return value or default
     end
 
-    -- Get config sections
-    local colors = cfg.getColors(beautiful)
-    local fonts = cfg.getFonts(beautiful)
-    local sizes = cfg.getSizes(beautiful)
-    local paddings = cfg.getPaddings()
+    -- Color fallbacks
+    local function getColors(beautiful)
+        return {
+            bg_button = getCfg("colors.bg_button", beautiful.bg_normal or "#1a1a2e"),
+            bg_popup = getCfg("colors.bg_popup", beautiful.bg_normal or "#1a1a2e"),
+            bg_header = getCfg("colors.bg_header", beautiful.bg_focus or "#2a2a4e"),
+            bg_window = getCfg("colors.bg_window", beautiful.bg_normal or "#1a1a2e"),
+            bg_tab_bar = getCfg("colors.bg_tab_bar", beautiful.bg_normal or "#1a1a2e"),
+            bg_pagination = getCfg("colors.bg_pagination", beautiful.bg_focus or "#2a2a4e"),
+            fg_header = getCfg("colors.fg_header", beautiful.fg_normal or "#ffffff"),
+            fg_content = getCfg("colors.fg_content", beautiful.fg_normal or "#ffffff"),
+            fg_tab = getCfg("colors.fg_tab", beautiful.fg_normal or "#ffffff"),
+            fg_pagination_button = getCfg("colors.fg_pagination_button", beautiful.fg_normal or "#ffffff"),
+            fg_pagination_label = getCfg("colors.fg_pagination_label", beautiful.fg_normal or "#888888"),
+            icon_color = getCfg("colors.icon_color", beautiful.fg_normal or "#ffffff"),
+            icon_hover = getCfg("colors.icon_hover", beautiful.fg_focus or "#5a5a8a"),
+            tab_active = getCfg("colors.tab_active", beautiful.bg_focus or "#3a3a5a"),
+            tab_inactive = getCfg("colors.tab_inactive", beautiful.bg_normal or "#1a1a2e"),
+            tab_hover = getCfg("colors.tab_hover", beautiful.bg_focus or "#5a5a8a"),
+        }
+    end
 
-    -- Font references
-    local contentFont = fonts.content
-    local titleFont = fonts.title
-    local tabFont = fonts.tab
-    local iconFontRaw = fonts.icon
-    local iconFontSize = tonumber(iconFontRaw:match("(%d+)$")) or 12
-    local iconFontScaled = iconFontRaw:gsub("(%d+)$", tostring(math.floor(iconFontSize * fonts.icon_scale)))
-    local paginationButtonFont = fonts.pagination_button
-    local paginationLabelFont = fonts.pagination_label
+    -- Font fallbacks
+    local function getFonts(beautiful)
+        local baseFont = beautiful.font or "sans 12"
+        return {
+            content = getCfg("fonts.content", baseFont),
+            title = getCfg("fonts.title", baseFont),
+            tab = getCfg("fonts.tab", baseFont),
+            icon = getCfg("fonts.icon", baseFont),
+            icon_scale = getCfg("fonts.icon_scale", 1.5),
+            pagination_button = getCfg("fonts.pagination_button", baseFont),
+            pagination_label = getCfg("fonts.pagination_label", baseFont),
+        }
+    end
+
+    -- Size fallbacks
+    local function getSizes(beautiful)
+        return {
+            button_size = getCfg("sizes.button_size", 40),
+            window_min_width = getCfg("sizes.window_min_width", 350),
+            window_max_width = getCfg("sizes.window_max_width", 500),
+            window_min_height = getCfg("sizes.window_min_height", 300),
+            window_max_height = getCfg("sizes.window_max_height", 600),
+            content_max_height = getCfg("sizes.content_max_height", 400),
+            tab_width = getCfg("sizes.tab_width", 100),
+            tab_height = getCfg("sizes.tab_height", 30),
+            close_button_size = getCfg("sizes.close_button_size", 24),
+            competition_btn_width = getCfg("sizes.competition_btn_width", 80),
+            competition_btn_height = getCfg("sizes.competition_btn_height", 24),
+        }
+    end
+
+    -- Padding fallbacks
+    local function getPaddings()
+        return {
+            header = getCfg("paddings.header", 8),
+            tab_bar = getCfg("paddings.tab_bar", 4),
+            competition = getCfg("paddings.competition", 8),
+            content = getCfg("paddings.content", 8),
+            icon = getCfg("paddings.icon", 4),
+            button_top = getCfg("paddings.button_top", 2),
+            button_bottom = getCfg("paddings.button_bottom", 2),
+            button_left = getCfg("paddings.button_left", 4),
+            button_right = getCfg("paddings.button_right", 4),
+        }
+    end
+
+    -- Get config sections (with fallbacks)
+    local colors = getColors(beautiful)
+    local fonts = getFonts(beautiful)
+    local sizes = getSizes(beautiful)
+    local paddings = getPaddings()
 
     -- Tab configuration
     local tabs = args.tabs or {}
@@ -78,10 +171,22 @@ function tabbed_window.create(args)
         error("tabbed_window requires at least one tab")
     end
 
-    -- Current state
+    -- Font references (with fallbacks)
+    local contentFont = fonts.content
+    local titleFont = fonts.title
+    local tabFont = fonts.tab
+    local iconFontRaw = fonts.icon
+    local iconFontSize = tonumber(iconFontRaw:match("(%d+)$")) or 12
+    local iconFontScaled = iconFontRaw:gsub("(%d+)$", tostring(math.floor(iconFontSize * (fonts.icon_scale or 1.5))))
+    local paginationButtonFont = fonts.pagination_button
+    local paginationLabelFont = fonts.pagination_label
+
+    -- Current state (initialize before any closures reference them)
     local currentTab = tabs[1].id
     local currentPage = 1
-    local itemsPerPage = cfg.defaults and cfg.defaults.matches_per_page or 10
+
+    -- Items per page fallback
+    local itemsPerPage = getCfg("defaults.matches_per_page", 10)
 
     -- Content provider
     local contentProvider = args.content_provider
@@ -121,10 +226,6 @@ function tabbed_window.create(args)
     local setActiveTab = nil
 
     -- Build tab widgets
-    -- Store signal handlers for cleanup (prevents memory leaks)
-    local tabEnterHandlers = {}
-    local tabLeaveHandlers = {}
-    for i, tab in ipairs(tabs) do
         tabEnterHandlers[tab.id] = function(c)
             c.bg = colors.tab_hover
         end
@@ -196,7 +297,7 @@ function tabbed_window.create(args)
     -- Content text widget
     contentText = wibox.widget {
         id = "content",
-        text = cfg.strings and cfg.strings.loading or "Loading...",
+        text = getCfg("strings.loading", "Loading..."),
         widget = wibox.widget.textbox,
         font = contentFont,
     }
@@ -263,7 +364,7 @@ function tabbed_window.create(args)
         local content, totalItems = contentProvider(currentTab, currentPage, currentSelectorItem)
         
         if not content then
-            contentText.text = cfg.strings and cfg.strings.loading or "Loading..."
+            contentText.text = getCfg("strings.loading", "Loading...")
             if paginationContainer then paginationContainer.visible = false end
             return
         end
@@ -380,7 +481,7 @@ function tabbed_window.create(args)
                                 nil,
                                 {
                                     id = "closeBtn",
-                                    text = cfg.icons and cfg.icons.close or "✕",
+                                    text = getCfg("icons.close", "✕"),
                                     widget = wibox.widget.textbox,
                                     font = titleFont,
                                     align = "center",
