@@ -196,7 +196,13 @@ function match_window.create(args)
             -- Standings: use per-competition cache
             local compCode = selector and selector.code or "SA"
             local cacheData = cache.standings[compCode]
-            if not cacheData or not cacheData.data then
+            if not cacheData then
+                return cfg.strings.loading, 0
+            end
+            if cacheData.error then
+                return "Error: " .. cacheData.error .. "\n\nTry selecting a different competition.", 0
+            end
+            if not cacheData.data then
                 return cfg.strings.loading, 0
             end
             return View.getStandingsString(cacheData.data, selector and selector.name or "Serie A"), 0
@@ -206,7 +212,13 @@ function match_window.create(args)
             -- Results: use per-selector cache
             local selectorCode = selector and selector.code or "INTER"
             local cacheData = cache.results[selectorCode]
-            if not cacheData or not cacheData.data then
+            if not cacheData then
+                return cfg.strings.loading, 0
+            end
+            if cacheData.error then
+                return "Error: " .. cacheData.error .. "\n\nTry selecting a different option.", 0
+            end
+            if not cacheData.data then
                 return cfg.strings.loading, 0
             end
             
@@ -301,6 +313,17 @@ function match_window.create(args)
             fetchInProgress[tabId] = nil
 
             if exitcode ~= 0 then
+                -- Show error message instead of hanging
+                if tabId == "scores" then
+                    local selectorCode = selector and selector.code or "INTER"
+                    cache.results[selectorCode] = { data = {}, timestamp = os.time(), error = "Failed to fetch data" }
+                elseif tabId == "standings" then
+                    local compCode = selector and selector.code or "SA"
+                    cache.standings[compCode] = { data = {}, timestamp = os.time(), error = "Failed to fetch data" }
+                end
+                if refreshCallback then
+                    refreshCallback()
+                end
                 return
             end
 
@@ -309,6 +332,17 @@ function match_window.create(args)
             end)
 
             if not success or not data then
+                -- Show error message instead of hanging
+                if tabId == "scores" then
+                    local selectorCode = selector and selector.code or "INTER"
+                    cache.results[selectorCode] = { data = {}, timestamp = os.time(), error = "Failed to parse data" }
+                elseif tabId == "standings" then
+                    local compCode = selector and selector.code or "SA"
+                    cache.standings[compCode] = { data = {}, timestamp = os.time(), error = "Failed to parse data" }
+                end
+                if refreshCallback then
+                    refreshCallback()
+                end
                 return
             end
 
