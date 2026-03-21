@@ -350,15 +350,29 @@ function match_window.create(args)
     -- Results selectors (team + competitions)
     local resultsSelectors = args.results_selectors or match_window.RESULTS_SELECTORS
 
+    -- Standings selectors (competitions only)
+    local standingsSelectors = args.competitions or cfg.COMPETITIONS
+
+    -- Per-tab selector items
+    local selectorItemsMap = {
+        scores = resultsSelectors,
+        standings = standingsSelectors,
+    }
+
     -- Create the tabbed window
     local centeredButton, popup, controls = tabbed_window.create({
         tabs = tabs,
         content_provider = contentProvider,
-        selector_items = args.competitions or cfg.COMPETITIONS,
+        selector_items = selectorItemsMap,  -- Per-tab selectors
         on_selector_change = function(item)
-            currentCompetition = item
-            -- Fetch data for the new competition when selector changes
-            fetchTabData("standings", item)
+            -- Handle selector change based on current tab
+            local state = controls.get_state()
+            if state.tab == "standings" then
+                currentCompetition = item
+                fetchTabData("standings", item)
+            elseif state.tab == "scores" then
+                fetchTabData("scores", item)
+            end
         end,
         title_icon = cfg.icons.football,
         title_text = cfg.strings.title,
