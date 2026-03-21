@@ -323,19 +323,22 @@ function tabbed_window.create(args)
         end
     end
 
-    -- Build tab bar widget
+    -- Build tab bar widget (no unpack needed)
     local tabBarChildren = {}
     for _, tab in ipairs(tabs) do
         table.insert(tabBarChildren, tabWidgets[tab.id])
     end
 
+    -- Create fixed layout and add children directly
+    local tabBarLayout = wibox.layout.fixed.horizontal()
+    tabBarLayout.spacing = 4
+    for _, child in ipairs(tabBarChildren) do
+        tabBarLayout:add(child)
+    end
+
     local tabBar = wibox.widget {
         {
-            {
-                unpack(tabBarChildren),
-                layout = wibox.layout.fixed.horizontal,
-                spacing = 4,
-            },
+            tabBarLayout,
             widget = wibox.container.margin,
             margins = paddings.tab_bar,
         },
