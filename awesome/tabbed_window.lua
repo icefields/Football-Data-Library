@@ -156,9 +156,6 @@ function tabbed_window.create(args)
     local setActiveTab = nil
 
     -- Build tab widgets
-    -- Store signal handlers for cleanup (prevents memory leaks)
-    local tabEnterHandlers = {}
-    local tabLeaveHandlers = {}
     for i, tab in ipairs(tabs) do
         tabEnterHandlers[tab.id] = function(c)
             c.bg = colors.tab_hover
@@ -236,7 +233,7 @@ function tabbed_window.create(args)
         font = contentFont,
     }
 
-    -- Build selector buttons (will be rebuilt on tab change)
+    -- Build selector buttons widget (must be created before popup)
     selectorButtons = wibox.widget {
         layout = wibox.layout.flex.horizontal,
         spacing = 2,
@@ -244,6 +241,22 @@ function tabbed_window.create(args)
 
     -- Function to rebuild selector buttons for current tab
     local function rebuildSelectorButtons()
+        -- Disconnect old signal handlers to prevent memory leaks
+        if selectorButtons and selectorButtonHandlers then
+            for i, child in ipairs(selectorButtons.children or {}) do
+                if selectorButtonHandlers.enter[i] then
+                    child:disconnect_signal("mouse::enter", selectorButtonHandlers.enter[i])
+                end
+                if selectorButtonHandlers.leave[i] then
+                    child:disconnect_signal("mouse::leave", selectorButtonHandlers.leave[i])
+                end
+            end
+        end
+        
+        -- Clear handlers table
+        selectorButtonHandlers.enter = {}
+        selectorButtonHandlers.leave = {}
+        
         -- Clear existing buttons
         selectorButtons:reset()
         
