@@ -115,7 +115,19 @@ end
 local function ensureCacheLoaded(cacheFile)
     local data = loadCacheFromFile(cacheFile)
     if data then
-        if data.matches then cache.matches = data.matches end
+        if data.matches then 
+            cache.matches = data.matches 
+            -- Also populate results cache from legacy matches (assume Inter)
+            if data.matches.data then
+                cache.results["INTER"] = data.matches
+            end
+        end
+        if data.results then
+            -- New per-selector format
+            for selectorCode, resultsData in pairs(data.results) do
+                cache.results[selectorCode] = resultsData
+            end
+        end
         if data.standings then 
             -- Handle both old format (single) and new format (per-competition)
             if data.standings.data then
