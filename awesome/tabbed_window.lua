@@ -554,6 +554,11 @@ function tabbed_window.create(args)
     paginationContainer = popup.widget:get_children_by_id("paginationContainer")[1]
     selectorContainer = popup.widget:get_children_by_id("competitionContainer")[1]
 
+    -- Build initial selector buttons for the first tab
+    if selectorContainer and selectorItemsPerTab[currentTab] then
+        rebuildSelectorButtons()
+    end
+
     -- Pagination button handlers
     if prevPageBtn then
         prevPageBtn:buttons(gears.table.join(
