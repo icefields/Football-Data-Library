@@ -3,7 +3,10 @@
 -- Called by match_window widget via awful.spawn (async)
 -- Usage: 
 --   lua fetch_data.lua <cache_file> <team_id> <match_count> <competition_code>
+--   lua fetch_data.lua <cache_file> team <team_id> <match_count>
+--   lua fetch_data.lua <cache_file> competition <competition_code> <match_count>
 --   lua fetch_data.lua <cache_file> champions <competition_code> <match_count>
+--   lua fetch_data.lua <cache_file> standings <competition_code>
 
 -- Get script directory and add to package.path
 local scriptPath = debug.getinfo(1, "S").source:match("^@(.+/)[^/]+$")
@@ -59,6 +62,49 @@ local success, err = pcall(function()
             champions = {
                 data = matches,
                 timestamp = os.time(),
+            },
+        }
+    elseif mode == "team" then
+        -- Fetch team matches
+        -- Usage: lua fetch_data.lua <cache_file> team <team_id> <match_count>
+        local teamId = tonumber(arg[3]) or 108
+        local matchCount = tonumber(arg[4]) or 30
+        
+        local matches = app.service:getTeamScores(teamId, matchCount, false)
+        
+        result = {
+            results = {
+                INTER = {  -- Use "INTER" as key for Inter team
+                    data = matches,
+                    timestamp = os.time(),
+                },
+            },
+        }
+    elseif mode == "competition" then
+        -- Fetch competition matches
+        -- Usage: lua fetch_data.lua <cache_file> competition <code> <match_count>
+        local competitionCode = arg[3] or "SA"
+        local matchCount = tonumber(arg[4]) or 30
+        
+        local allMatches = app.service:getLatestScores(competitionCode, false)
+        
+        -- Filter to only finished matches and limit to count
+        local matches = {}
+        for _, match in ipairs(allMatches) do
+            if match.status == "FINISHED" then
+                table.insert(matches, match)
+                if #matches >= matchCount then
+                    break
+                end
+            end
+        end
+        
+        result = {
+            results = {
+                [competitionCode] = {
+                    data = matches,
+                    timestamp = os.time(),
+                },
             },
         }
     elseif mode == "standings" then

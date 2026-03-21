@@ -27,10 +27,22 @@ local match_window = {}
 match_window.TEAMS = football_config.TEAMS
 match_window.COMPETITIONS = football_config.COMPETITIONS
 
+-- Selector options for Results tab (team + competitions)
+match_window.RESULTS_SELECTORS = {
+    { name = "Inter", code = "INTER", type = "team", team_id = 108 },
+    { name = "Serie A", code = "SA", type = "competition" },
+    { name = "Premier League", code = "PL", type = "competition" },
+    { name = "La Liga", code = "PD", type = "competition" },
+    { name = "Bundesliga", code = "BL1", type = "competition" },
+    { name = "Ligue 1", code = "FL1", type = "competition" },
+}
+
 -- In-memory cache
 -- standings is now keyed by competition code: { ["SA"] = { data = ..., timestamp = ... }, ... }
+-- results is now keyed by selector code: { ["INTER"] = { data = ..., timestamp = ... }, ["SA"] = { ... }, ... }
 local cache = {
-    matches = { data = nil, timestamp = 0 },
+    matches = { data = nil, timestamp = 0 },  -- Legacy, will migrate to results
+    results = {},  -- Per-selector results cache
     standings = {},  -- Per-competition cache
     champions = { data = nil, timestamp = 0 },
 }
@@ -178,7 +190,23 @@ function match_window.create(args)
             return View.getStandingsString(cacheData.data, selector and selector.name or "Serie A"), 0
         end
 
-        -- Other tabs: use single cache
+        if tabId == "scores" then
+            -- Results: use per-selector cache
+            local selectorCode = selector and selector.code or "INTER"
+            local cacheData = cache.results[selectorCode]
+            if not cacheData or not cacheData.data then
+                return cfg.strings.loading, 0
+            end
+            
+            local pageMatches, totalMatches = getPaginatedMatches(cacheData.data, page, matchesPerPage)
+            local rawResults = View.getMatchesString(pageMatches, true)
+            local formattedResults = View.getFormattedResults(rawResults)
+            local totalPages = math.ceil(totalMatches / matchesPerPage)
+            local pageIndicator = string.format("\n\n─── Page %d/%d ───", page, totalPages)
+            return formattedResults .. pageIndicator, totalMatches
+        end
+
+        -- Champions tab: use single cache
         local cacheData = cache[config.cache_key]
         if not cacheData or not cacheData.data then
             return cfg.strings.loading, 0
@@ -220,8 +248,33 @@ function match_window.create(args)
                 cacheFile,
                 compCode
             )
+        elseif tabId == "scores" then
+            -- Results tab: fetch based on selector type
+            local selectorCode = selector and selector.code or "INTER"
+            local selectorType = selector and selector.type or "team"
+            
+            if selectorType == "team" then
+                -- Fetch team matches
+                local teamId = selector and selector.team_id or cfg.defaults.team_id
+                cmd = string.format(
+                    "lua %s %s team %d %d",
+                    fetchScript,
+                    cacheFile,
+                    teamId,
+                    cfg.defaults.match_count
+                )
+            else
+                -- Fetch competition matches
+                cmd = string.format(
+                    "lua %s %s competition %s %d",
+                    fetchScript,
+                    cacheFile,
+                    selectorCode,
+                    cfg.defaults.match_count
+                )
+            end
         else
-            -- Scores tab
+            -- Fallback: old scores format
             cmd = string.format(
                 "lua %s %s %d %d %s",
                 fetchScript,
@@ -252,7 +305,16 @@ function match_window.create(args)
                 cache.champions = data.champions
             end
             if data.matches and data.matches.data then
-                cache.matches = data.matches
+                -- Legacy format: store in results with selector code
+                local selectorCode = selector and selector.code or "INTER"
+                cache.results[selectorCode] = data.matches
+                cache.matches = data.matches  -- Keep legacy for backwards compat
+            end
+            if data.results then
+                -- New per-selector format
+                for selectorCode, resultsData in pairs(data.results) do
+                    cache.results[selectorCode] = resultsData
+                end
             end
             if data.standings then
                 -- Could be single competition or all
@@ -280,10 +342,13 @@ function match_window.create(args)
 
     -- Tab configuration for tabbed_window
     local tabs = {
-        { id = "scores", label = cfg.strings.results, icon = cfg.icons.results, has_pagination = true },
+        { id = "scores", label = cfg.strings.results, icon = cfg.icons.results, has_pagination = true, has_selector = true },
         { id = "standings", label = cfg.strings.standings, icon = cfg.icons.standings, has_pagination = false, has_selector = true },
         { id = "champions", label = cfg.strings.champions, icon = cfg.icons.champions, has_pagination = true },
     }
+
+    -- Results selectors (team + competitions)
+    local resultsSelectors = args.results_selectors or match_window.RESULTS_SELECTORS
 
     -- Create the tabbed window
     local centeredButton, popup, controls = tabbed_window.create({

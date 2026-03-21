@@ -99,10 +99,35 @@ function tabbed_window.create(args)
         error("tabbed_window requires 'content_provider' function")
     end
 
-    -- Selector configuration (optional)
-    local selectorItems = args.selector_items
+    -- Selector configuration (per-tab)
+    -- selector_items can be a table for all tabs, or a map { tabId = items, ... }
+    local selectorItemsGlobal = args.selector_items
+    local selectorItemsPerTab = {}
+    
+    -- Check if selector_items is per-tab or global
+    if selectorItemsGlobal then
+        -- If first item has .id/.name/.code, it's a global list
+        -- Otherwise it might be a per-tab map
+        if selectorItemsGlobal[1] and (selectorItemsGlobal[1].id or selectorItemsGlobal[1].name or selectorItemsGlobal[1].code) then
+            -- Global list: apply to all tabs that have has_selector = true
+            for _, tab in ipairs(tabs) do
+                if tab.has_selector then
+                    selectorItemsPerTab[tab.id] = selectorItemsGlobal
+                end
+            end
+        else
+            -- Per-tab map
+            selectorItemsPerTab = selectorItemsGlobal
+        end
+    end
+    
+    -- Track current selector per tab
+    local currentSelector = {}
+    for tabId, items in pairs(selectorItemsPerTab) do
+        currentSelector[tabId] = items[1]
+    end
+    
     local onSelectorChange = args.on_selector_change
-    local currentSelectorItem = selectorItems and selectorItems[1]
 
     -- Window title
     local titleIcon = args.title_icon or ""
@@ -211,20 +236,33 @@ function tabbed_window.create(args)
         font = contentFont,
     }
 
-    -- Build selector buttons if selector_items provided
+    -- Build selector buttons (will be rebuilt on tab change)
     selectorButtons = wibox.widget {
         layout = wibox.layout.flex.horizontal,
         spacing = 2,
     }
 
-    if selectorItems then
-        for i, item in ipairs(selectorItems) do
+    -- Function to rebuild selector buttons for current tab
+    local function rebuildSelectorButtons()
+        -- Clear existing buttons
+        selectorButtons:reset()
+        
+        local items = selectorItemsPerTab[currentTab]
+        if not items then
+            selectorContainer.visible = false
+            return
+        end
+        
+        selectorContainer.visible = true
+        local currentItem = currentSelector[currentTab]
+        
+        for i, item in ipairs(items) do
             -- Store handlers for cleanup
             selectorButtonHandlers.enter[i] = function(c)
                 c.bg = colors.tab_hover
             end
             selectorButtonHandlers.leave[i] = function(c)
-                if currentSelectorItem and currentSelectorItem.code == item.code then
+                if currentItem and currentItem.code == item.code then
                     c.bg = colors.tab_active
                 else
                     c.bg = colors.tab_inactive
@@ -239,21 +277,18 @@ function tabbed_window.create(args)
                     valign = "center",
                     font = contentFont,
                 },
-                bg = item.code == currentSelectorItem.code and colors.tab_active or colors.tab_inactive,
+                bg = (currentItem and currentItem.code == item.code) and colors.tab_active or colors.tab_inactive,
                 fg = colors.fg_tab,
                 widget = wibox.container.background,
                 forced_width = sizes.selector_btn_width,
                 forced_height = sizes.selector_btn_height,
             }
-            -- Button click handler (separate to avoid 'btn' reference inside its own definition)
+            -- Button click handler
             btn:buttons(gears.table.join(
                 awful.button({}, 1, function()
-                    currentSelectorItem = item
-                    -- Update button highlights
-                    for _, b in ipairs(selectorButtons.children) do
-                        b.bg = colors.tab_inactive
-                    end
-                    btn.bg = colors.tab_active
+                    currentSelector[currentTab] = item
+                    -- Rebuild buttons to update highlights
+                    rebuildSelectorButtons()
                     -- Callback
                     if onSelectorChange then
                         onSelectorChange(item)
@@ -271,7 +306,8 @@ function tabbed_window.create(args)
 
     -- Update content based on current tab
     updateContent = function()
-        local content, totalItems = contentProvider(currentTab, currentPage, currentSelectorItem)
+        local selector = currentSelector[currentTab]
+        local content, totalItems = contentProvider(currentTab, currentPage, selector)
 
         if not content then
             contentText.text = "Loading..."
@@ -315,7 +351,7 @@ function tabbed_window.create(args)
             end
         end
 
-        -- Update selector visibility
+        -- Update selector visibility and rebuild buttons
         if selectorContainer then
             local tab = nil
             for _, t in ipairs(tabs) do
@@ -324,7 +360,12 @@ function tabbed_window.create(args)
                     break
                 end
             end
-            selectorContainer.visible = tab and tab.has_selector or false
+            if tab and tab.has_selector and selectorItemsPerTab[tabId] then
+                rebuildSelectorButtons()
+                selectorContainer.visible = true
+            else
+                selectorContainer.visible = false
+            end
         end
 
         -- Update pagination visibility
@@ -582,9 +623,9 @@ function tabbed_window.create(args)
         refresh = updateContent,
         -- Set current tab
         set_tab = setActiveTab,
-        -- Set current selector item
+        -- Set current selector item for current tab
         set_selector = function(item)
-            currentSelectorItem = item
+            currentSelector[currentTab] = item
             currentPage = 1
             updateContent()
         end,
@@ -598,7 +639,7 @@ function tabbed_window.create(args)
             return {
                 tab = currentTab,
                 page = currentPage,
-                selector = currentSelectorItem,
+                selector = currentSelector[currentTab],
             }
         end,
         -- Cleanup (call before removing widget to prevent memory leaks)
@@ -616,7 +657,7 @@ function tabbed_window.create(args)
             end
 
             -- Disconnect signal handlers from selector buttons
-            if selectorItems and selectorButtonHandlers then
+            if selectorButtons and selectorButtonHandlers then
                 for i, child in ipairs(selectorButtons.children or {}) do
                     if selectorButtonHandlers.enter[i] then
                         child:disconnect_signal("mouse::enter", selectorButtonHandlers.enter[i])
