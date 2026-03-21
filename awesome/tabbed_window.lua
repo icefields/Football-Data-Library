@@ -109,6 +109,10 @@ function tabbed_window.create(args)
     local selectorButtons = nil
     local tabWidgets = {}
 
+    -- Forward declaration for updateContent and setActiveTab (needed for closures)
+    local updateContent = nil
+    local setActiveTab = nil
+
     -- Build tab widgets
     for i, tab in ipairs(tabs) do
         tabWidgets[tab.id] = wibox.widget {
@@ -531,6 +535,7 @@ function tabbed_window.create(args)
 
     -- Controls table returned to caller
     local controls = {
+        popup = popup,  -- Expose popup for external manipulation
         -- Show the popup
         show = function()
             popup.visible = true

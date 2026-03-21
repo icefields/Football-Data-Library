@@ -27,9 +27,6 @@ local match_window = {}
 match_window.TEAMS = default_config.TEAMS
 match_window.COMPETITIONS = default_config.COMPETITIONS
 
--- Singleton for football app
-local footballApp = nil
-
 -- In-memory cache
 local cache = {
     matches = { data = nil, timestamp = 0 },
