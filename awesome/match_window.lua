@@ -172,6 +172,9 @@ function match_window.create(args)
     -- Ensure cache is loaded
     ensureCacheLoaded(cacheFile)
 
+    -- Forward declarations
+    local refreshCallback = nil
+
     -- Content provider function for tabbed_window
     local function contentProvider(tabId, page, selector)
         local config = TAB_CONFIG[tabId]
@@ -282,11 +285,13 @@ function match_window.create(args)
             -- Save to file
             saveCacheToFile(cacheFile, cache)
 
-            -- Refresh display
-            updateContent()
+            -- Refresh display via the controls.refresh callback
+            if refreshCallback then
+                refreshCallback()
+            end
         end)
     end
-
+    
     -- Tab configuration for tabbed_window
     local tabs = {
         { id = "scores", label = cfg.strings.results, icon = cfg.icons.results, has_pagination = true },
@@ -302,9 +307,7 @@ function match_window.create(args)
         on_selector_change = function(item)
             currentCompetition = item
             -- Fetch data for the new competition when selector changes
-            if controls.get_state().tab == "standings" then
-                fetchTabData("standings", item)
-            end
+            fetchTabData("standings", item)
         end,
         config = cfg,
         title_icon = cfg.icons.football,
@@ -314,6 +317,9 @@ function match_window.create(args)
         wibox = wibox,
         gears = gears,
     })
+
+    -- Wire up refresh callback so fetchTabData can trigger UI update
+    refreshCallback = controls.refresh
 
     -- Wire up tab changes to fetch data on demand
     local originalShow = controls.show
