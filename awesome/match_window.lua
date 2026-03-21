@@ -18,14 +18,15 @@
 local FootballData = require("football")
 local View = require("football.view")
 local cjson = require("cjson")
-local default_config = require("awesome.awesome_config")
+local football_config = require("awesome.football_config")
+local tabbed_window_config = require("awesome.tabbed_window_config")
 local tabbed_window = require("awesome.tabbed_window")
 
 local match_window = {}
 
--- Re-export from config for backwards compatibility
-match_window.TEAMS = default_config.TEAMS
-match_window.COMPETITIONS = default_config.COMPETITIONS
+-- Re-export from football_config for backwards compatibility
+match_window.TEAMS = football_config.TEAMS
+match_window.COMPETITIONS = football_config.COMPETITIONS
 
 -- In-memory cache
 local cache = {
@@ -121,8 +122,22 @@ function match_window.create(args)
         error("match_window requires 'awful', 'beautiful', 'wibox', and 'gears' modules")
     end
 
-    -- Use config defaults (can override via args.config)
-    local cfg = args.config or default_config
+    -- Use merged config (football_config for data, tabbed_window_config for theming)
+    local cfg = args.config or setmetatable({
+        -- Football-specific config
+        TEAMS = football_config.TEAMS,
+        COMPETITIONS = football_config.COMPETITIONS,
+        CHAMPIONS_LEAGUE_CODE = football_config.CHAMPIONS_LEAGUE_CODE,
+        defaults = football_config.defaults,
+        paths = football_config.paths,
+        icons = football_config.icons,
+        strings = football_config.strings,
+        -- Theming config (merged)
+        getColors = function(beautiful) return tabbed_window_config.getColors(beautiful) end,
+        getFonts = function(beautiful) return tabbed_window_config.getFonts(beautiful) end,
+        getSizes = function(beautiful) return tabbed_window_config.getSizes(beautiful) end,
+        getPaddings = function() return tabbed_window_config.getPaddings() end,
+    }, { __index = tabbed_window_config })
 
     -- Current competition for standings
     local currentCompetition = args.competitions and args.competitions[1] or cfg.COMPETITIONS[1]

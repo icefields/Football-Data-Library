@@ -6,25 +6,39 @@
 --   - Tab configuration (labels, icons, pagination flags)
 --   - Content provider function (returns text for each tab/page)
 --   - Optional selector configuration (for dropdown-like selectors)
---   - Config from awesome_config for theming
+--   - Config from tabbed_window_config for theming
 --
 -- Usage:
 --   local tabbed_window = require("awesome.tabbed_window")
+--   local tabbed_window_config = require("awesome.tabbed_window_config")
 --   local widget, popup, controls = tabbed_window.create({
 --     tabs = {
 --       { id = "results", label = "Results", icon = "📊", has_pagination = true },
 --       { id = "standings", label = "Standings", icon = "🏆", has_pagination = false },
 --     },
---     content_provider = function(tab_id, page)
---       -- Return content string and total items
---       return "Match results here...", 100
+--     content_provider = function(tab_id, page, selector)
+--       return "Content here...", 100
 --     end,
---     config = awesome_config,
+--     config = tabbed_window_config,
+--     title_icon = "󰒸",
+--     title_text = "My Widget",
 --     awful = awful,
 --     beautiful = beautiful,
 --     wibox = wibox,
 --     gears = gears,
 --   })
+--
+-- Controls returned:
+--   controls.popup - the popup widget
+--   controls.show() - show popup
+--   controls.hide() - hide popup
+--   controls.toggle() - toggle popup
+--   controls.refresh() - refresh content
+--   controls.set_tab(id) - switch tabs
+--   controls.set_selector(item) - change selector
+--   controls.set_page(n) - change page
+--   controls.get_state() - returns { tab, page, selector }
+--   controls.destroy() - cleanup signal handlers
 
 local tabbed_window = {}
 
