@@ -252,6 +252,24 @@ function match_window.create(args)
     -- Fetch data for a specific tab (on demand)
     local function fetchTabData(tabId, selector)
         if fetchInProgress[tabId] then return end
+
+        -- Check cache validity before fetching
+        local cacheEntry
+        if tabId == "champions" then
+            cacheEntry = cache.champions
+        elseif tabId == "standings" then
+            local compCode = selector and selector.code or "SA"
+            cacheEntry = cache.standings[compCode]
+        elseif tabId == "scores" then
+            local selectorCode = selector and selector.code or "INTER"
+            cacheEntry = cache.results[selectorCode]
+        end
+
+        -- Skip fetch if cache is still valid
+        if isCacheValid(cacheEntry, cfg.defaults.cache_timeout) then
+            return
+        end
+
         fetchInProgress[tabId] = true
 
         local cmd
@@ -419,6 +437,25 @@ function match_window.create(args)
                 fetchTabData("scores", item)
             end
         end,
+        on_open = function()
+            -- Fetch data when popup opens (if cache is stale)
+            -- This implements "if first tab just load"
+            local state = controls.get_state()
+            local cacheEntry
+            if state.tab == "champions" then
+                cacheEntry = cache.champions
+            elseif state.tab == "standings" then
+                local compCode = state.selector and state.selector.code or "SA"
+                cacheEntry = cache.standings[compCode]
+            elseif state.tab == "scores" then
+                local selectorCode = state.selector and state.selector.code or "INTER"
+                cacheEntry = cache.results[selectorCode]
+            end
+            -- Fetch only if cache is stale or missing
+            if not isCacheValid(cacheEntry, cfg.defaults.cache_timeout) then
+                fetchTabData(state.tab, state.selector)
+            end
+        end,
         title_icon = cfg.icons.football,
         title_text = cfg.strings.title,
         awful = awful,
@@ -429,14 +466,6 @@ function match_window.create(args)
 
     -- Wire up refresh callback so fetchTabData can trigger UI update
     refreshCallback = controls.refresh
-
-    -- Wire up tab changes to fetch data on demand
-    local originalShow = controls.show
-    controls.show = function()
-        originalShow()
-        local state = controls.get_state()
-        fetchTabData(state.tab, state.selector)
-    end
 
     return centeredButton, controls
 end

@@ -594,6 +594,9 @@ function tabbed_window.create(args)
         ))
     end
 
+    -- Store on_open callback
+    local onOpen = args.on_open
+
     -- Button click handler
     button:buttons(gears.table.join(
         awful.button({}, 1, function()
@@ -602,6 +605,10 @@ function tabbed_window.create(args)
             else
                 popup.visible = true
                 updateContent()
+                -- Trigger on_open callback if provided
+                if onOpen then
+                    onOpen()
+                end
             end
         end)
     ))
