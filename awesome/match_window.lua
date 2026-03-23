@@ -454,6 +454,23 @@ function match_window.create(args)
                 fetchTabData(tabId, selector)
             end
         end,
+        on_open = function(state)
+            -- Fetch data when popup opens for first selector/tab (if cache is stale)
+            local cacheEntry
+            if state.tab == "champions" then
+                cacheEntry = cache.champions
+            elseif state.tab == "standings" then
+                local compCode = state.selector and state.selector.code or "SA"
+                cacheEntry = cache.standings[compCode]
+            elseif state.tab == "scores" then
+                local selectorCode = state.selector and state.selector.code or "INTER"
+                cacheEntry = cache.results[selectorCode]
+            end
+            -- Fetch only if cache is stale or missing
+            if not isCacheValid(cacheEntry, cfg.defaults.cache_timeout) then
+                fetchTabData(state.tab, state.selector)
+            end
+        end,
         title_icon = cfg.icons.football,
         title_text = cfg.strings.title,
         awful = awful,
