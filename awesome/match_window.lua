@@ -437,10 +437,9 @@ function match_window.create(args)
                 fetchTabData("scores", item)
             end
         end,
-        on_open = function()
+        on_open = function(state)
             -- Fetch data when popup opens (if cache is stale)
             -- This implements "if first tab just load"
-            local state = controls.get_state()
             local cacheEntry
             if state.tab == "champions" then
                 cacheEntry = cache.champions

@@ -605,9 +605,12 @@ function tabbed_window.create(args)
             else
                 popup.visible = true
                 updateContent()
-                -- Trigger on_open callback if provided
+                -- Trigger on_open callback if provided, pass current state
                 if onOpen then
-                    onOpen()
+                    onOpen({
+                        tab = currentTab,
+                        selector = currentSelector[currentTab],
+                    })
                 end
             end
         end)
