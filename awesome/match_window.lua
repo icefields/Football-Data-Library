@@ -111,6 +111,20 @@ local function isCacheValid(cacheEntry, maxAge)
     return (os.time() - cacheEntry.timestamp) < maxAge
 end
 
+-- Get cache entry for a specific tab/selector
+local function getCacheEntry(tabId, selector)
+    if tabId == "champions" then
+        return cache.champions
+    elseif tabId == "standings" then
+        local compCode = selector and selector.code or "SA"
+        return cache.standings[compCode]
+    elseif tabId == "scores" then
+        local selectorCode = selector and selector.code or "INTER"
+        return cache.results[selectorCode]
+    end
+    return nil
+end
+
 -- Ensure cache is loaded from file
 local function ensureCacheLoaded(cacheFile)
     local data = loadCacheFromFile(cacheFile)
@@ -253,19 +267,8 @@ function match_window.create(args)
     local function fetchTabData(tabId, selector)
         if fetchInProgress[tabId] then return end
 
-        -- Check cache validity before fetching
-        local cacheEntry
-        if tabId == "champions" then
-            cacheEntry = cache.champions
-        elseif tabId == "standings" then
-            local compCode = selector and selector.code or "SA"
-            cacheEntry = cache.standings[compCode]
-        elseif tabId == "scores" then
-            local selectorCode = selector and selector.code or "INTER"
-            cacheEntry = cache.results[selectorCode]
-        end
-
         -- Skip fetch if cache is still valid
+        local cacheEntry = getCacheEntry(tabId, selector)
         if isCacheValid(cacheEntry, cfg.defaults.cache_timeout) then
             return
         end
@@ -439,34 +442,14 @@ function match_window.create(args)
         end,
         on_tab_change = function(tabId, selector)
             -- Fetch data when tab changes (if cache is stale)
-            local cacheEntry
-            if tabId == "champions" then
-                cacheEntry = cache.champions
-            elseif tabId == "standings" then
-                local compCode = selector and selector.code or "SA"
-                cacheEntry = cache.standings[compCode]
-            elseif tabId == "scores" then
-                local selectorCode = selector and selector.code or "INTER"
-                cacheEntry = cache.results[selectorCode]
-            end
-            -- Fetch only if cache is stale or missing
+            local cacheEntry = getCacheEntry(tabId, selector)
             if not isCacheValid(cacheEntry, cfg.defaults.cache_timeout) then
                 fetchTabData(tabId, selector)
             end
         end,
         on_open = function(state)
             -- Fetch data when popup opens for first selector/tab (if cache is stale)
-            local cacheEntry
-            if state.tab == "champions" then
-                cacheEntry = cache.champions
-            elseif state.tab == "standings" then
-                local compCode = state.selector and state.selector.code or "SA"
-                cacheEntry = cache.standings[compCode]
-            elseif state.tab == "scores" then
-                local selectorCode = state.selector and state.selector.code or "INTER"
-                cacheEntry = cache.results[selectorCode]
-            end
-            -- Fetch only if cache is stale or missing
+            local cacheEntry = getCacheEntry(state.tab, state.selector)
             if not isCacheValid(cacheEntry, cfg.defaults.cache_timeout) then
                 fetchTabData(state.tab, state.selector)
             end

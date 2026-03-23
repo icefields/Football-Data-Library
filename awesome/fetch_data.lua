@@ -13,6 +13,9 @@ local scriptPath = debug.getinfo(1, "S").source:match("^@(.+/)[^/]+$")
 if scriptPath then
     -- Add library paths (relative to this script's location)
     package.path = scriptPath .. "../?.lua;" .. scriptPath .. "../?/init.lua;" .. package.path
+    -- Add C module paths for luarocks-installed modules (cjson, etc.)
+    local home = os.getenv("HOME") or ""
+    package.cpath = home .. "/.luarocks/lib/lua/5.4/?.so;" .. package.cpath
 end
 
 local FootballData = require("football")
