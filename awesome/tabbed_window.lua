@@ -46,6 +46,7 @@ local tabbed_window = {}
 --   args.content_provider = function(tab_id, page) -> string, total_items
 --   args.selector_items = {{ name, code }, ...} or nil (for selector dropdown)
 --   args.on_selector_change = function(item) ... or nil
+--   args.on_tab_change = function(tab_id) ... or nil
 --   args.title_icon = icon string (optional)
 --   args.title_text = title string (optional)
 --   args.awful, args.beautiful, args.wibox, args.gears = required modules
@@ -128,6 +129,7 @@ function tabbed_window.create(args)
     end
     
     local onSelectorChange = args.on_selector_change
+    local onTabChange = args.on_tab_change
 
     -- Window title
     local titleIcon = args.title_icon or ""
@@ -394,6 +396,11 @@ function tabbed_window.create(args)
         end
 
         updateContent()
+
+        -- Trigger on_tab_change callback if provided
+        if onTabChange then
+            onTabChange(tabId, currentSelector[tabId])
+        end
     end
 
     -- Tab button click handlers
@@ -594,9 +601,6 @@ function tabbed_window.create(args)
         ))
     end
 
-    -- Store on_open callback
-    local onOpen = args.on_open
-
     -- Button click handler
     button:buttons(gears.table.join(
         awful.button({}, 1, function()
@@ -605,13 +609,6 @@ function tabbed_window.create(args)
             else
                 popup.visible = true
                 updateContent()
-                -- Trigger on_open callback if provided, pass current state
-                if onOpen then
-                    onOpen({
-                        tab = currentTab,
-                        selector = currentSelector[currentTab],
-                    })
-                end
             end
         end)
     ))
